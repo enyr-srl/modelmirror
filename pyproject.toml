@@ -1,11 +1,11 @@
 [project]
 name = "modelmirror"
-version = "0.1.7"
+version = "0.1.8"
 description = "Model Mirror"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "pydantic>=2.0.0"
+    "build>=1.3.0"
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
