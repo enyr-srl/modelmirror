@@ -409,28 +409,30 @@ wheels = [
 
 [[package]]
 name = "modelmirror"
-version = "0.0.1"
+version = "0.1.6"
 source = { editable = "." }
 dependencies = [
-    { name = "build" },
     { name = "pydantic" },
-    { name = "twine" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "pre-commit" },
 ]
+publish = [
+    { name = "build" },
+    { name = "twine" },
+]
 
 [package.metadata]
-requires-dist = [
-    { name = "build", specifier = ">=1.3.0" },
-    { name = "pydantic", specifier = ">=2.0.0" },
-    { name = "twine", specifier = ">=6.2.0" },
-]
+requires-dist = [{ name = "pydantic", specifier = ">=2.0.0" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pre-commit", specifier = ">=4.4.0" }]
+publish = [
+    { name = "build", specifier = ">=1.3.0" },
+    { name = "twine", specifier = ">=6.2.0" },
+]
 
 [[package]]
 name = "more-itertools"
