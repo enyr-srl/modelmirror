@@ -1,6 +1,6 @@
 # ModelMirror
 
-A Python library automatic configuration management using JSON files. ModelMirror allows you to define object instances and their dependencies in JSON configuration files, then automatically instantiate and wire them together.
+A Python library for automatic configuration management using JSON files. It lets you describe object instances and their dependencies in JSON, then automatically creates and connects those objects for you.
 
 ## Key Features
 
@@ -24,7 +24,7 @@ class DatabaseService:
     def __init__(self, host: str, port: int):
         self.host = host
         self.port = port
-    
+
     def connect(self):
         return f"Connected to {self.host}:{self.port}"
 
@@ -32,7 +32,7 @@ class UserService:
     def __init__(self, db: DatabaseService, cache_enabled: bool):
         self.db = db
         self.cache_enabled = cache_enabled
-    
+
     def get_user(self, user_id: int):
         connection = self.db.connect()
         return f"User {user_id} from {connection} (cache: {self.cache_enabled})"
@@ -47,11 +47,11 @@ from modelmirror.class_provider.class_register import ClassRegister
 from modelmirror.class_provider.class_reference import ClassReference
 
 # Register DatabaseService with schema "database" and version "1.0.0"
-class DatabaseServiceRegister(ClassRegister, 
+class DatabaseServiceRegister(ClassRegister,
     reference=ClassReference(schema="database", version="1.0.0", cls=DatabaseService)):
     pass
 
-# Register UserService with schema "user_service" and version "1.0.0"  
+# Register UserService with schema "user_service" and version "1.0.0"
 class UserServiceRegister(ClassRegister,
     reference=ClassReference(schema="user_service", version="1.0.0", cls=UserService)):
     pass
@@ -167,7 +167,7 @@ class DatabaseService:
     def __init__(self, host: str, port: int):
         self.host = host
         self.port = port
-    
+
     def connect(self):
         return f"Connected to {self.host}:{self.port}"
 
@@ -175,7 +175,7 @@ class UserService:
     def __init__(self, db: DatabaseService, cache_enabled: bool):
         self.db = db
         self.cache_enabled = cache_enabled
-    
+
     def get_user(self, user_id: int):
         connection = self.db.connect()
         return f"User {user_id} from {connection} (cache: {self.cache_enabled})"
@@ -188,11 +188,11 @@ from modelmirror.class_provider.class_register import ClassRegister
 from modelmirror.class_provider.class_reference import ClassReference
 
 # Register DatabaseService with schema "database" and version "1.0.0"
-class DatabaseServiceRegister(ClassRegister, 
+class DatabaseServiceRegister(ClassRegister,
     reference=ClassReference(schema="database", version="1.0.0", cls=DatabaseService)):
     pass
 
-# Register UserService with schema "user_service" and version "1.0.0"  
+# Register UserService with schema "user_service" and version "1.0.0"
 class UserServiceRegister(ClassRegister,
     reference=ClassReference(schema="user_service", version="1.0.0", cls=UserService)):
     pass
@@ -229,7 +229,7 @@ from pydantic import BaseModel, ConfigDict
 
 class AppConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     my_database: DatabaseService
     my_user_service: UserService
 ```
@@ -271,7 +271,7 @@ class DatabaseConfig(BaseModel):
 
 class AppConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+
     databases: List[DatabaseService]
     user_service: UserService
     debug_mode: bool = False
