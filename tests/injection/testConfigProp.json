@@ -1,0 +1,59 @@
+{
+    "instances_pydantic": [
+        {
+            "$reference": {
+                "instance": "test_pydantic",
+                "registry": {
+                    "schema": "test_pydantic",
+                    "version": "0.0.1"
+                }
+            },
+            "test_param": "ciao1",
+            "test_p_p": "test_p_p"
+        }
+    ],
+    "test_pydantic2": {
+        "$reference": {
+            "registry": {
+                "schema": "test_pydantic",
+                "version": "0.0.1"
+            }
+        },
+        "test_param": "ciao2",
+        "test_p_p": "test2"
+    },
+    "test1": {
+        "$reference": {
+            "registry": {
+                "schema": "test",
+                "version": "0.0.1"
+            },
+            "instance": "test1"
+        },
+        "test_param": "ciao1"
+    },
+    "ciao": "$test2",
+    "instances": [
+        "$test1",
+        {
+            "$reference": {
+                "instance": "test2",
+                "registry": {
+                    "schema": "test",
+                    "version": "0.0.1"
+                }
+            },
+            "test_param": "ciao2"
+        }
+    ],
+    "composed_test": {
+        "$reference": {
+            "registry": {
+                "schema": "test_compose",
+                "version": "0.0.1"
+            }
+        },
+        "test_param": "ciao",
+        "test_1": "$test1"
+    }
+}

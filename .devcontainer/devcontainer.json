@@ -1,0 +1,33 @@
+{
+	"name": "Model Mirror Library",
+	"service": "modelmirror",
+	"dockerComposeFile": [
+		"../docker-compose.prod.yml",
+		"docker-compose.dev.yml"
+	],
+	"workspaceFolder": "/workspace",
+	"features": {
+		"ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+	},
+	"postCreateCommand": "bash -c 'uv sync --all-extras && uv run pre-commit install'",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.vscode-pylance", // Pylance
+				"ms-python.python", // Python
+				"ms-python.debugpy", // Python Debugger
+				"ms-python.vscode-python-environment", // Python Environments
+				"AmazonWebServices.amazon-q-vscode" // Amazon Q
+			],
+			"settings": {
+				"python.analysis.typeCheckingMode": "standard",
+				"python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+				"python.terminal.activateEnvironment": true
+			}
+		}
+	},
+	"forwardPorts": [
+		8088
+	],
+	"shutdownAction": "none"
+}

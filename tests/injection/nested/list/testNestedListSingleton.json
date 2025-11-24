@@ -1,0 +1,24 @@
+{
+    "nested_list": {
+        "$reference": {
+            "registry": {
+                "schema": "test-nested-list-singleton",
+                "version": "0.0.1"
+            }
+        },
+        "test_param": "outer",
+        "test_singleton": {
+            "$reference": {
+                "registry": {
+                    "schema": "test",
+                    "version": "0.0.1"
+                },
+                "instance": "singleton"
+            },
+            "test_param": "inner"
+        },
+        "tests": [
+            "$singleton"
+        ]
+    }
+}

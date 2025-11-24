@@ -1,0 +1,12 @@
+{
+    "test_pydantic": {
+        "$reference": {
+            "registry": {
+                "schema": "test_pydantic",
+                "version": "0.0.1"
+            }
+        },
+        "test_param": "ciao1",
+        "test_p_p": "test"
+    }
+}

@@ -1,0 +1,4 @@
+.nox
+.git
+.venv
+*app/.*env

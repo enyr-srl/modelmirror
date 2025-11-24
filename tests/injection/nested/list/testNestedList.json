@@ -1,0 +1,22 @@
+{
+    "nested_list": {
+        "$reference": {
+            "registry": {
+                "schema": "test-nested-list",
+                "version": "0.0.1"
+            }
+        },
+        "test_param": "outer",
+        "tests": [
+            {
+                "$reference": {
+                    "registry": {
+                        "schema": "test",
+                        "version": "0.0.1"
+                    }
+                },
+                "test_param": "inner"
+            }
+        ]
+    }
+}

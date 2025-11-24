@@ -1,0 +1,19 @@
+{
+    "python.analysis.typeCheckingMode": "standard",
+    "python.analysis.packageIndexDepths": [
+        {
+            "name": "pynmodel",
+            "depth": 8,
+            "includeAllSymbols": true
+        }
+    ],
+    "python.testing.unittestEnabled": true,
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "${workspaceFolder}/tests",
+        "-p",
+        "test_*.py"
+    ]
+}
