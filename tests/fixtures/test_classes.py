@@ -3,7 +3,7 @@ Test classes for ModelMirror JSON configuration testing.
 These classes represent various service patterns commonly used in applications.
 """
 
-from typing import Optional, List, Dict
+from typing import Any, Optional, List, Dict
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -105,7 +105,7 @@ class DictService:
 class NestedService:
     """Service with deeply nested dependencies."""
     
-    def __init__(self, outer_service: ComplexService, metadata: Dict[str, any]):
+    def __init__(self, outer_service: ComplexService, metadata: Dict[str, Any]):
         self.outer_service = outer_service
         self.metadata = metadata
 

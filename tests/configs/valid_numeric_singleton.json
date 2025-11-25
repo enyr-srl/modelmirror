@@ -1,0 +1,1 @@
+{"service1": {"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}, "instance": "123"}, "name": "numeric_singleton"}}

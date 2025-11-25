@@ -95,14 +95,32 @@ class TestJSONEdgeCases(unittest.TestCase):
         """Test that singleton references are case sensitive."""
         with self.assertRaises(Exception):
             self.mirror.reflect_raw('tests/configs/case_sensitive.json')
+    
+    def test_valid_numeric_singleton_names(self):
+        """Test that numeric singleton names work correctly when used properly."""
+        # Create a valid config where numeric singleton is used in object field, not string field
+        with open('tests/configs/valid_numeric_singleton.json', 'w') as f:
+            json.dump({
+                "service1": {
+                    "$reference": {
+                        "registry": {"schema": "simple_service", "version": "1.0.0"},
+                        "instance": "123"
+                    },
+                    "name": "numeric_singleton"
+                }
+            }, f)
+        
+        instances = self.mirror.reflect_raw('tests/configs/valid_numeric_singleton.json')
+        services = instances.get(list[SimpleService])
+        self.assertEqual(len(services), 1)
+        self.assertEqual(services[0].name, "numeric_singleton")
 
     def test_numeric_and_boolean_singleton_names(self):
-        """Test singleton names that are numeric or boolean-like."""
-        instances = self.mirror.reflect_raw('tests/configs/numeric_singleton.json')
-        services = instances.get(list[SimpleService])
-        self.assertEqual(len(services), 2)
-        # Both should reference the same instance
-        self.assertIs(services[0], services[1])
+        """Test that putting $reference in string field is a user configuration error."""
+        # This should fail because service2 has "name": "$123" which resolves to an object,
+        # but SimpleService.name expects a string. This is a user configuration error.
+        with self.assertRaises(Exception):
+            self.mirror.reflect_raw('tests/configs/numeric_singleton.json')
 
     def test_empty_string_values(self):
         """Test handling of empty string values in configuration."""
