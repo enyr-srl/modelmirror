@@ -14,7 +14,6 @@ classifiers = [
 ]
 license = "MIT"
 
-# Better author syntax (optional but recommended)
 authors = [
   { name = "Lorenzo Bretto", email = "lorenzo.bretto@enyr.eu" }
 ]
