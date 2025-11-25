@@ -1,1 +1,12 @@
-{"service": {"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}, "unexpected_field": "should_be_ignored"}, "name": "test"}}
+{
+    "service": {
+        "$reference": {
+            "registry": {
+                "schema": "simple_service",
+                "version": "1.0.0"
+            },
+            "unexpected_field": "should_be_ignored"
+        },
+        "name": "test"
+    }
+}

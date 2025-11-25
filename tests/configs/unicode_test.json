@@ -1,1 +1,11 @@
-{"service": {"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}}, "name": "测试服务_🚀_special-chars.test@domain.com"}}
+{
+    "service": {
+        "$reference": {
+            "registry": {
+                "schema": "simple_service",
+                "version": "1.0.0"
+            }
+        },
+        "name": "测试服务_🚀_special-chars.test@domain.com"
+    }
+}

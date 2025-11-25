@@ -1,1 +1,36 @@
-{"complex_structure": {"arrays": [[1, 2, 3], ["a", "b", "c"], [{"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}}, "name": "nested_in_array"}]], "objects": {"level1": {"level2": {"services": [{"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}}, "name": "deeply_nested"}]}}}}}
+{
+    "complex_structure": {
+        "arrays": [
+            [1, 2, 3],
+            ["a", "b", "c"],
+            [
+                {
+                    "$reference": {
+                        "registry": {
+                            "schema": "simple_service",
+                            "version": "1.0.0"
+                        }
+                    },
+                    "name": "nested_in_array"
+                }
+            ]
+        ],
+        "objects": {
+            "level1": {
+                "level2": {
+                    "services": [
+                        {
+                            "$reference": {
+                                "registry": {
+                                    "schema": "simple_service",
+                                    "version": "1.0.0"
+                                }
+                            },
+                            "name": "deeply_nested"
+                        }
+                    ]
+                }
+            }
+        }
+    }
+}

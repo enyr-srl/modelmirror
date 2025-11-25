@@ -1,1 +1,21 @@
-{"level1": {"level2": {"level3": {"level4": {"level5": {"service": {"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}}, "name": "deep_service"}}}}}}}
+{
+    "level1": {
+        "level2": {
+            "level3": {
+                "level4": {
+                    "level5": {
+                        "service": {
+                            "$reference": {
+                                "registry": {
+                                    "schema": "simple_service",
+                                    "version": "1.0.0"
+                                }
+                            },
+                            "name": "deep_service"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

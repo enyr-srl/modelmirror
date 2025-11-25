@@ -293,9 +293,14 @@ class TestJSONConfigurations(unittest.TestCase):
         # This tests the flexibility of the system
         instances = self.mirror.reflect_raw('tests/configs/heterogeneous_list.json')
         
-        services = instances.get(list)
-        self.assertTrue(len(services) > 0)
+        # Get all instances as a mixed list
+        simple_services = instances.get(list[SimpleService])
+        database_services = instances.get(list[DatabaseService])
+        user_services = instances.get(list[UserService])
+        
         # Should contain different types of services
+        total_services = len(simple_services) + len(database_services) + len(user_services)
+        self.assertTrue(total_services > 0)
 
     def test_configuration_inheritance_patterns(self):
         """Test configuration patterns that simulate inheritance."""

@@ -1,1 +1,21 @@
-{"service1": {"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}, "instance": "TestService"}, "name": "original"}, "service2": {"$reference": {"registry": {"schema": "simple_service", "version": "1.0.0"}}, "name": "$testservice"}}
+{
+    "service1": {
+        "$reference": {
+            "registry": {
+                "schema": "simple_service",
+                "version": "1.0.0"
+            },
+            "instance": "TestService"
+        },
+        "name": "original"
+    },
+    "service2": {
+        "$reference": {
+            "registry": {
+                "schema": "simple_service",
+                "version": "1.0.0"
+            }
+        },
+        "name": "$testservice"
+    }
+}
