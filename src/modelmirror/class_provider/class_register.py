@@ -10,5 +10,5 @@ class ClassRegister:
         reference = kwargs.pop("reference", None)
         super().__init_subclass__(**kwargs)
         if reference is None:
-            raise ValueError("ClassRegister reference must be provided")
+            raise ValueError(f"ClassRegister reference must be provided for class {cls.__name__!r}")
         cls.reference = reference
