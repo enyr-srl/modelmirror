@@ -30,7 +30,7 @@ class TestJSONEdgeCases(unittest.TestCase):
         class EmptyConfig(BaseModel):
             pass
         
-        config = self.mirror.reflect_typed('tests/configs/empty.json', EmptyConfig)
+        config = self.mirror.reflect('tests/configs/empty.json', EmptyConfig)
         self.assertIsInstance(config, EmptyConfig)
 
     def test_json_with_only_primitives(self):
@@ -66,7 +66,7 @@ class TestJSONEdgeCases(unittest.TestCase):
 
     def test_unicode_and_special_characters(self):
         """Test handling of Unicode and special characters in JSON."""
-        config = self.mirror.reflect_typed('tests/configs/unicode_test.json', EdgeCaseConfig)
+        config = self.mirror.reflect('tests/configs/unicode_test.json', EdgeCaseConfig)
         self.assertEqual(config.service.name, "测试服务_🚀_special-chars.test@domain.com")
 
     def test_json_with_comments_should_fail(self):
@@ -121,12 +121,12 @@ class TestJSONEdgeCases(unittest.TestCase):
 
     def test_empty_string_values(self):
         """Test handling of empty string values in configuration."""
-        config_obj = self.mirror.reflect_typed('tests/configs/empty_strings.json', EdgeCaseConfig)
+        config_obj = self.mirror.reflect('tests/configs/empty_strings.json', EdgeCaseConfig)
         self.assertEqual(config_obj.service.name, "")
 
     def test_very_long_string_values(self):
         """Test handling of very long string values."""
-        config_obj = self.mirror.reflect_typed('tests/configs/long_strings.json', EdgeCaseConfig)
+        config_obj = self.mirror.reflect('tests/configs/long_strings.json', EdgeCaseConfig)
         self.assertEqual(len(config_obj.service.name), 1024)
 
     def test_nested_arrays_and_objects(self):

@@ -24,7 +24,7 @@ class Mirror:
         self.__singleton_path: dict[str, str] = {}
         self.__reference_parser = reference_parser
 
-    def reflect_typed(self, config_path: str, model: type[T]) -> T:
+    def reflect(self, config_path: str, model: type[T]) -> T:
         self.__auto_reset()
         reflection_config_file = self.__get_reflection_config_file(config_path)
         with open(reflection_config_file) as file:

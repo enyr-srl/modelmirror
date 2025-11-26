@@ -64,14 +64,14 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_simple_instance_creation(self):
         """Test basic instance creation from JSON."""
-        config = self.mirror.reflect_typed('tests/configs/simple.json', SimpleConfig)
+        config = self.mirror.reflect('tests/configs/simple.json', SimpleConfig)
         
         self.assertIsInstance(config.service, SimpleService)
         self.assertEqual(config.service.name, "test_service")
 
     def test_instance_with_multiple_parameters(self):
         """Test instance creation with multiple constructor parameters."""
-        config = self.mirror.reflect_typed('tests/configs/database.json', DatabaseConfig)
+        config = self.mirror.reflect('tests/configs/database.json', DatabaseConfig)
         
         self.assertIsInstance(config.database, DatabaseService)
         self.assertEqual(config.database.host, "localhost")
@@ -90,7 +90,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_singleton_reference_in_dependency_injection(self):
         """Test singleton reference used in dependency injection."""
-        config = self.mirror.reflect_typed('tests/configs/dependency_injection.json', UserServiceConfig)
+        config = self.mirror.reflect('tests/configs/dependency_injection.json', UserServiceConfig)
         
         # Both services should reference the same database instance
         self.assertIs(config.user_service.database, config.database)
@@ -98,7 +98,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_list_of_instances_no_singletons(self):
         """Test list containing multiple instances without singletons."""
-        config = self.mirror.reflect_typed('tests/configs/list_instances.json', ListConfig)
+        config = self.mirror.reflect('tests/configs/list_instances.json', ListConfig)
         
         self.assertEqual(len(config.services), 3)
         self.assertIsInstance(config.services[0], SimpleService)
@@ -111,7 +111,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_list_with_singleton_references(self):
         """Test list containing singleton references."""
-        config = self.mirror.reflect_typed('tests/configs/list_with_singletons.json', ListConfig)
+        config = self.mirror.reflect('tests/configs/list_with_singletons.json', ListConfig)
         
         self.assertEqual(len(config.services), 3)
         # First and third should be the same instance (singleton reference)
@@ -121,7 +121,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_list_mixed_instances_and_references(self):
         """Test list with mix of new instances and singleton references."""
-        config = self.mirror.reflect_typed('tests/configs/list_mixed.json', ListConfig)
+        config = self.mirror.reflect('tests/configs/list_mixed.json', ListConfig)
         
         self.assertEqual(len(config.services), 4)
         # Check that singleton references work correctly
@@ -132,7 +132,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_dictionary_of_instances(self):
         """Test dictionary containing instances."""
-        config = self.mirror.reflect_typed('tests/configs/dict_instances.json', DictConfig)
+        config = self.mirror.reflect('tests/configs/dict_instances.json', DictConfig)
         
         self.assertEqual(len(config.services), 2)
         self.assertIn("primary", config.services)
@@ -142,7 +142,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_dictionary_with_singleton_references(self):
         """Test dictionary with singleton references."""
-        config = self.mirror.reflect_typed('tests/configs/dict_with_singletons.json', DictConfig)
+        config = self.mirror.reflect('tests/configs/dict_with_singletons.json', DictConfig)
         
         self.assertEqual(len(config.services), 3)
         # Check singleton reference works
@@ -151,7 +151,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_nested_object_creation(self):
         """Test nested object creation within properties."""
-        config = self.mirror.reflect_typed('tests/configs/nested_objects.json', ComplexNestedConfig)
+        config = self.mirror.reflect('tests/configs/nested_objects.json', ComplexNestedConfig)
         
         self.assertIsInstance(config.complex_service, ComplexService)
         self.assertIsInstance(config.complex_service.database, DatabaseService)
@@ -161,7 +161,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_deeply_nested_structures(self):
         """Test deeply nested object structures."""
-        config = self.mirror.reflect_typed('tests/configs/deep_nesting.json', ComplexNestedConfig)
+        config = self.mirror.reflect('tests/configs/deep_nesting.json', ComplexNestedConfig)
         
         # Verify deep nesting works correctly
         self.assertIsInstance(config.complex_service.database, DatabaseService)
@@ -203,7 +203,7 @@ class TestJSONConfigurations(unittest.TestCase):
         class EmptyConfig(BaseModel):
             pass
         
-        config = self.mirror.reflect_typed('tests/configs/empty.json', EmptyConfig)
+        config = self.mirror.reflect('tests/configs/empty.json', EmptyConfig)
         self.assertIsInstance(config, EmptyConfig)
 
     def test_configuration_with_null_values(self):
@@ -212,7 +212,7 @@ class TestJSONConfigurations(unittest.TestCase):
             model_config = ConfigDict(arbitrary_types_allowed=True)
             service: ServiceWithOptionals
         
-        config = self.mirror.reflect_typed('tests/configs/with_nulls.json', ServiceWithOptionalsConfig)
+        config = self.mirror.reflect('tests/configs/with_nulls.json', ServiceWithOptionalsConfig)
         
         self.assertIsInstance(config.service, ServiceWithOptionals)
         self.assertIsNone(config.service.optional_param)
@@ -223,7 +223,7 @@ class TestJSONConfigurations(unittest.TestCase):
             model_config = ConfigDict(arbitrary_types_allowed=True)
             service: ServiceWithDefaults
         
-        config = self.mirror.reflect_typed('tests/configs/with_defaults.json', ServiceWithDefaultsConfig)
+        config = self.mirror.reflect('tests/configs/with_defaults.json', ServiceWithDefaultsConfig)
         
         self.assertIsInstance(config.service, ServiceWithDefaults)
         # Should use default value when not specified
@@ -231,7 +231,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_mixed_complex_configuration(self):
         """Test complex configuration with all features combined."""
-        config = self.mirror.reflect_typed('tests/configs/complex_mixed.json', MixedConfig)
+        config = self.mirror.reflect('tests/configs/complex_mixed.json', MixedConfig)
         
         # Verify all components are created
         self.assertIsInstance(config.database, DatabaseService)
@@ -273,16 +273,16 @@ class TestJSONConfigurations(unittest.TestCase):
             service: ConfigurableService
         
         # This should pass validation
-        config = self.mirror.reflect_typed('tests/configs/valid_pydantic.json', ConfigurableServiceConfig)
+        config = self.mirror.reflect('tests/configs/valid_pydantic.json', ConfigurableServiceConfig)
         self.assertIsInstance(config.service, ConfigurableService)
         
         # This should fail validation
         with self.assertRaises(Exception):
-            self.mirror.reflect_typed('tests/configs/invalid_pydantic.json', ConfigurableServiceConfig)
+            self.mirror.reflect('tests/configs/invalid_pydantic.json', ConfigurableServiceConfig)
 
     def test_type_safety_with_schema(self):
         """Test type safety when using Pydantic schemas."""
-        config = self.mirror.reflect_typed('tests/configs/type_safe.json', UserServiceConfig)
+        config = self.mirror.reflect('tests/configs/type_safe.json', UserServiceConfig)
         
         # IDE should have full type information
         self.assertEqual(config.database.host, "localhost")
@@ -304,7 +304,7 @@ class TestJSONConfigurations(unittest.TestCase):
 
     def test_configuration_inheritance_patterns(self):
         """Test configuration patterns that simulate inheritance."""
-        config = self.mirror.reflect_typed('tests/configs/inheritance_pattern.json', ComplexNestedConfig)
+        config = self.mirror.reflect('tests/configs/inheritance_pattern.json', ComplexNestedConfig)
         
         # Verify that base configuration is properly extended
         self.assertIsInstance(config.complex_service, ComplexService)

@@ -106,17 +106,25 @@ class AppConfig(BaseModel):
     my_user_service: UserService
 
 # Load with full type checking and IDE support
-config = mirror.reflect_typed('config.json', AppConfig)
+config = mirror.reflect('config.json', AppConfig)
 print(config.my_database.host)  # Full autocomplete!
 ```
 
 ## Tutorial 3: Understanding References - The Heart of ModelMirror
 
-ModelMirror's power comes from its reference system. Let's explore how it works with practical examples.
+ModelMirror's power comes from its reference system. The `$reference` field is what transforms JSON objects into live instances.
+
+### How `$reference` Works
+
+The `$reference` field uses a simple string format that ModelMirror parses to understand:
+1. **Which class to instantiate** (the registered ID)
+2. **Whether to create a singleton** (optional instance name)
+
+**Format**: `"class_id"` or `"class_id:instance_name"`
 
 ### Basic Reference Structure
 
-Every object in your JSON you want to mirror needs a `$reference` field with a simple string:
+Every object you want to mirror needs a `$reference` field:
 
 ```json
 {
@@ -127,13 +135,14 @@ Every object in your JSON you want to mirror needs a `$reference` field with a s
 }
 ```
 
-This tells ModelMirror:
-1. Create an instance using the class registered with id "service"
-2. Pass `"name": "My Service"` as a constructor parameter
+**What happens:**
+1. ModelMirror finds the class registered with ID "service"
+2. Creates a new instance: `ServiceClass(name="My Service")`
+3. Returns the configured object
 
 ### Singleton References - Reuse Instances Anywhere
 
-Use the format `"id:instance_name"` to create a reusable singleton:
+Add `:instance_name` to create a reusable singleton:
 
 ```json
 {
@@ -153,7 +162,48 @@ Use the format `"id:instance_name"` to create a reusable singleton:
 }
 ```
 
-Both services get the **same** database instance! Use `$main_db` anywhere you need it.
+**What happens:**
+1. `"database:main_db"` creates a singleton named "main_db"
+2. `"$main_db"` references inject the same database instance
+3. Both services share the **exact same** database object
+
+### Reference Parser Architecture
+
+ModelMirror uses a pluggable parser system to handle `$reference` strings:
+
+```python
+from modelmirror.parser.reference_parser import ReferenceParser
+from modelmirror.parser.default_reference_parser import DefaultReferenceParser
+
+# Default parser handles: "id" and "id:instance"
+default_parser = DefaultReferenceParser()
+
+# You can create custom parsers for different formats
+class CustomReferenceParser(ReferenceParser):
+    def _parse(self, reference: str):
+        # Your custom parsing logic
+        pass
+
+# Use custom parser
+mirror = Mirror('myapp', reference_parser=CustomReferenceParser())
+```
+
+**Built-in Parser Features:**
+- **Simple format**: `"service"` → creates new instance
+- **Singleton format**: `"service:name"` → creates/reuses singleton
+- **Validation**: Ensures reference strings are valid
+- **Extensible**: Easy to add new reference formats
+
+### Reference Resolution Process
+
+ModelMirror processes references in a specific order:
+
+1. **Parse**: `DefaultReferenceParser` converts `"database:main_db"` to `ParsedReference(id="database", instance="main_db")`
+2. **Lookup**: Find the class registered with ID "database"
+3. **Dependency Analysis**: Scan for `$singleton_name` references in parameters
+4. **Topological Sort**: Order instances to resolve dependencies first
+5. **Instantiate**: Create objects with resolved dependencies
+6. **Singleton Management**: Store named instances for reuse
 
 ### Pydantic Schema for Type Safety
 
@@ -167,7 +217,7 @@ class ServiceConfig(BaseModel):
     user_service: UserService
     admin_service: AdminService
 
-config = mirror.reflect_typed('config.json', ServiceConfig)
+config = mirror.reflect('config.json', ServiceConfig)
 # Full IDE support and validation!
 ```
 
@@ -211,7 +261,7 @@ class MultiServiceConfig(BaseModel):
     primary_db: DatabaseService
     services: List[UserService]
 
-config = mirror.reflect_typed('config.json', MultiServiceConfig)
+config = mirror.reflect('config.json', MultiServiceConfig)
 print(f"Loaded {len(config.services)} services")
 ```
 
@@ -251,7 +301,7 @@ class DatabaseClusterConfig(BaseModel):
     databases: Dict[str, DatabaseService]
     load_balancer: LoadBalancerService
 
-config = mirror.reflect_typed('config.json', DatabaseClusterConfig)
+config = mirror.reflect('config.json', DatabaseClusterConfig)
 print(f"Primary DB: {config.databases['primary'].host}")
 ```
 
@@ -303,7 +353,7 @@ class AppConfig(BaseModel):
     user_service: UserService
     notification_service: NotificationService
 
-config = mirror.reflect_typed('config.json', AppConfig)
+config = mirror.reflect('config.json', AppConfig)
 # ModelMirror automatically resolves all dependencies in correct order!
 ```
 
@@ -370,7 +420,7 @@ class AppConfig(BaseModel):
     debug_mode: bool = Field(default=False)
 
 # This will validate all constraints when loading
-config = mirror.reflect_typed('config.json', AppConfig)
+config = mirror.reflect('config.json', AppConfig)
 ```
 
 ### Optional Fields and Defaults
@@ -388,7 +438,36 @@ class FlexibleConfig(BaseModel):
     max_retries: int = 3
 
 # JSON can omit optional fields
-config = mirror.reflect_typed('minimal_config.json', FlexibleConfig)
+config = mirror.reflect('minimal_config.json', FlexibleConfig)
+```
+
+## Advanced: Custom Reference Parsers
+
+Create custom parsers for specialized reference formats:
+
+```python
+from modelmirror.parser.reference_parser import ReferenceParser, ParsedReference, FormatValidation
+
+class VersionedReferenceParser(ReferenceParser):
+    """Supports format: service@v1.0:instance_name"""
+
+    def _validate(self, reference: str) -> FormatValidation:
+        if '@' not in reference:
+            return FormatValidation(False, "Missing version: use format 'id@version' or 'id@version:instance'")
+        return FormatValidation(True)
+
+    def _parse(self, reference: str) -> ParsedReference:
+        if ':' in reference:
+            id_version, instance = reference.split(':', 1)
+        else:
+            id_version, instance = reference, None
+
+        id_part, version = id_version.split('@', 1)
+        # You could use version for class selection logic
+        return ParsedReference(id=id_part, instance=instance)
+
+# Use your custom parser
+mirror = Mirror('myapp', reference_parser=VersionedReferenceParser())
 ```
 
 ## Pro Tips
@@ -396,13 +475,59 @@ config = mirror.reflect_typed('minimal_config.json', FlexibleConfig)
 ### 1. Use Meaningful Singleton Names
 ```json
 {
-    "instance": "user_db"     // Good: descriptive
-    "instance": "cache_1"    // Good: clear purpose
-    "instance": "x"          // Bad: unclear
+    "$reference": "database:user_db"     // Good: descriptive
+    "$reference": "cache:cache_1"       // Good: clear purpose
+    "$reference": "service:x"           // Bad: unclear
 }
 ```
 
-### 2. Organize Large Configs
+### 2. Reference Format Best Practices
+```json
+{
+    // Simple instance - no reuse needed
+    "logger": {
+        "$reference": "logger",
+        "level": "INFO"
+    },
+
+    // Singleton - will be reused
+    "database": {
+        "$reference": "database:main_db",
+        "host": "localhost"
+    },
+
+    // Reference the singleton
+    "user_service": {
+        "$reference": "user_service",
+        "database": "$main_db"  // Inject the singleton
+    }
+}
+```
+
+### 3. Understanding Reference Resolution Order
+
+ModelMirror automatically resolves dependencies using topological sorting:
+
+```json
+{
+    "user_service": {
+        "$reference": "user_service",
+        "database": "$main_db",     // Depends on main_db
+        "cache": "$redis"           // Depends on redis
+    },
+    "database": {
+        "$reference": "database:main_db"  // Created first
+    },
+    "cache": {
+        "$reference": "cache:redis"       // Created second
+    }
+    // user_service created last (after dependencies)
+}
+```
+
+**Resolution order**: `database` → `cache` → `user_service`
+
+### 4. Organize Large Configs
 ```python
 # Split large configs into logical sections
 class DatabaseConfig(BaseModel):
@@ -421,14 +546,14 @@ class AppConfig(BaseModel):
     services: ServiceConfig
 ```
 
-### 3. Environment-Specific Configs
+### 5. Environment-Specific Configs
 ```python
 # Load different configs per environment
 env = os.getenv('ENV', 'dev')
-config = mirror.reflect_typed(f'config_{env}.json', AppConfig)
+config = mirror.reflect(f'config_{env}.json', AppConfig)
 ```
 
-### 4. Retrieve Instances Flexibly
+### 6. Retrieve Instances Flexibly
 ```python
 # Multiple ways to get your instances
 user_service = instances.get(UserService)                    # First instance of type

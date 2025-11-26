@@ -54,7 +54,7 @@ class TestJSONValidation(unittest.TestCase):
 
     def test_strict_validation_success(self):
         """Test successful validation with strict Pydantic model."""
-        config = self.mirror.reflect_typed('tests/configs/strict_valid.json', StrictValidationConfig)
+        config = self.mirror.reflect('tests/configs/strict_valid.json', StrictValidationConfig)
         
         self.assertIsInstance(config.service, ValidationService)
         self.assertEqual(config.name, "valid_config")
@@ -63,16 +63,16 @@ class TestJSONValidation(unittest.TestCase):
     def test_strict_validation_field_constraints(self):
         """Test validation failure due to field constraint violations."""
         with self.assertRaises(ValidationError):
-            self.mirror.reflect_typed('tests/configs/strict_invalid_constraints.json', StrictValidationConfig)
+            self.mirror.reflect('tests/configs/strict_invalid_constraints.json', StrictValidationConfig)
 
     def test_strict_validation_extra_fields(self):
         """Test validation failure due to extra fields when extra='forbid'."""
         with self.assertRaises(ValidationError):
-            self.mirror.reflect_typed('tests/configs/strict_extra_fields.json', StrictValidationConfig)
+            self.mirror.reflect('tests/configs/strict_extra_fields.json', StrictValidationConfig)
 
     def test_optional_fields_with_values(self):
         """Test optional fields when values are provided."""
-        config = self.mirror.reflect_typed('tests/configs/optional_with_values.json', OptionalFieldsConfig)
+        config = self.mirror.reflect('tests/configs/optional_with_values.json', OptionalFieldsConfig)
         
         self.assertIsInstance(config.required_service, SimpleService)
         self.assertIsInstance(config.optional_service, SimpleService)
@@ -80,7 +80,7 @@ class TestJSONValidation(unittest.TestCase):
 
     def test_optional_fields_without_values(self):
         """Test optional fields when values are not provided."""
-        config = self.mirror.reflect_typed('tests/configs/optional_without_values.json', OptionalFieldsConfig)
+        config = self.mirror.reflect('tests/configs/optional_without_values.json', OptionalFieldsConfig)
         
         self.assertIsInstance(config.required_service, SimpleService)
         self.assertIsNone(config.optional_service)
@@ -88,21 +88,21 @@ class TestJSONValidation(unittest.TestCase):
 
     def test_union_types_first_type(self):
         """Test Union types resolving to first type."""
-        config = self.mirror.reflect_typed('tests/configs/union_simple.json', UnionTypesConfig)
+        config = self.mirror.reflect('tests/configs/union_simple.json', UnionTypesConfig)
         
         self.assertIsInstance(config.service, SimpleService)
         self.assertEqual(len(config.services), 2)
 
     def test_union_types_second_type(self):
         """Test Union types resolving to second type."""
-        config = self.mirror.reflect_typed('tests/configs/union_database.json', UnionTypesConfig)
+        config = self.mirror.reflect('tests/configs/union_database.json', UnionTypesConfig)
         
         self.assertIsInstance(config.service, DatabaseService)
         self.assertEqual(len(config.services), 2)
 
     def test_nested_validation_success(self):
         """Test nested object validation success."""
-        config = self.mirror.reflect_typed('tests/configs/nested_validation_valid.json', NestedValidationConfig)
+        config = self.mirror.reflect('tests/configs/nested_validation_valid.json', NestedValidationConfig)
         
         self.assertIsInstance(config.database, DatabaseService)
         self.assertIsInstance(config.user_service, UserService)
@@ -111,11 +111,11 @@ class TestJSONValidation(unittest.TestCase):
     def test_nested_validation_failure(self):
         """Test nested object validation failure."""
         with self.assertRaises(ValidationError):
-            self.mirror.reflect_typed('tests/configs/nested_validation_invalid.json', NestedValidationConfig)
+            self.mirror.reflect('tests/configs/nested_validation_invalid.json', NestedValidationConfig)
 
     def test_type_coercion_strings_to_numbers(self):
         """Test automatic type coercion from strings to numbers."""
-        config = self.mirror.reflect_typed('tests/configs/type_coercion.json', StrictValidationConfig)
+        config = self.mirror.reflect('tests/configs/type_coercion.json', StrictValidationConfig)
         
         # Should automatically convert string "42" to int 42
         self.assertEqual(config.count, 42)
@@ -124,7 +124,7 @@ class TestJSONValidation(unittest.TestCase):
     def test_validation_error_messages(self):
         """Test that validation error messages are informative."""
         try:
-            self.mirror.reflect_typed('tests/configs/validation_errors.json', StrictValidationConfig)
+            self.mirror.reflect('tests/configs/validation_errors.json', StrictValidationConfig)
             self.fail("Expected ValidationError")
         except ValidationError as e:
             error_dict = e.errors()
@@ -135,13 +135,13 @@ class TestJSONValidation(unittest.TestCase):
     def test_custom_validator_integration(self):
         """Test integration with custom Pydantic validators."""
         # This would test custom validators if they were defined in ValidationService
-        config = self.mirror.reflect_typed('tests/configs/custom_validation.json', StrictValidationConfig)
+        config = self.mirror.reflect('tests/configs/custom_validation.json', StrictValidationConfig)
         
         self.assertIsInstance(config.service, ValidationService)
 
     def test_model_serialization_after_reflection(self):
         """Test that reflected models can be serialized back to dict/JSON."""
-        config = self.mirror.reflect_typed('tests/configs/serialization_test.json', NestedValidationConfig)
+        config = self.mirror.reflect('tests/configs/serialization_test.json', NestedValidationConfig)
         
         # Should be able to convert back to dict
         config_dict = config.model_dump()
@@ -151,7 +151,7 @@ class TestJSONValidation(unittest.TestCase):
 
     def test_model_copy_and_modification(self):
         """Test that reflected models support Pydantic copy and modification."""
-        config = self.mirror.reflect_typed('tests/configs/copy_test.json', NestedValidationConfig)
+        config = self.mirror.reflect('tests/configs/copy_test.json', NestedValidationConfig)
         
         # Should be able to create a copy with modifications
         modified_config = config.model_copy(update={'metadata': {'new_key': 'new_value'}})
@@ -162,14 +162,14 @@ class TestJSONValidation(unittest.TestCase):
     def test_field_aliases_and_serialization_aliases(self):
         """Test Pydantic field aliases work correctly."""
         # This would test field aliases if they were defined in the models
-        config = self.mirror.reflect_typed('tests/configs/aliases_test.json', NestedValidationConfig)
+        config = self.mirror.reflect('tests/configs/aliases_test.json', NestedValidationConfig)
         
         self.assertIsInstance(config, NestedValidationConfig)
 
     def test_discriminated_unions(self):
         """Test discriminated unions if supported."""
         # This would test discriminated unions for more complex type resolution
-        config = self.mirror.reflect_typed('tests/configs/discriminated_union.json', UnionTypesConfig)
+        config = self.mirror.reflect('tests/configs/discriminated_union.json', UnionTypesConfig)
         
         self.assertTrue(
             isinstance(config.service, SimpleService) or 
@@ -187,7 +187,7 @@ class TestJSONValidation(unittest.TestCase):
 
     def test_validation_with_inheritance(self):
         """Test validation works correctly with class inheritance."""
-        config = self.mirror.reflect_typed('tests/configs/inheritance_validation.json', NestedValidationConfig)
+        config = self.mirror.reflect('tests/configs/inheritance_validation.json', NestedValidationConfig)
         
         self.assertIsInstance(config.database, DatabaseService)
         self.assertIsInstance(config.user_service, UserService)

@@ -46,7 +46,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
 
     def test_full_application_configuration(self):
         """Test a complete application configuration with all features."""
-        config = self.mirror.reflect_typed(
+        config = self.mirror.reflect(
             'tests/configs/full_application.json', 
             FullApplicationConfig
         )
@@ -98,7 +98,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
         """Test configuration that simulates environment-specific overrides."""
         # Test development environment
         dev_mirror = Mirror('tests.fixtures')
-        dev_config = dev_mirror.reflect_typed(
+        dev_config = dev_mirror.reflect(
             'tests/configs/environment_dev.json',
             FullApplicationConfig
         )
@@ -109,7 +109,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
         
         # Test production environment with new Mirror instance
         prod_mirror = Mirror('tests.fixtures')
-        prod_config = prod_mirror.reflect_typed(
+        prod_config = prod_mirror.reflect(
             'tests/configs/environment_prod.json',
             FullApplicationConfig
         )
@@ -145,7 +145,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
     def test_configuration_validation_in_complex_scenario(self):
         """Test that validation works correctly in complex configurations."""
         # This should succeed
-        config = self.mirror.reflect_typed(
+        config = self.mirror.reflect(
             'tests/configs/complex_valid.json',
             FullApplicationConfig
         )
@@ -153,7 +153,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
         
         # This should fail validation
         with self.assertRaises(Exception):
-            self.mirror.reflect_typed(
+            self.mirror.reflect(
                 'tests/configs/complex_invalid.json',
                 FullApplicationConfig
             )
@@ -163,7 +163,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
         import time
         
         start_time = time.time()
-        config = self.mirror.reflect_typed(
+        config = self.mirror.reflect(
             'tests/configs/large_complex.json',
             FullApplicationConfig
         )
@@ -192,7 +192,7 @@ class TestComprehensiveIntegration(unittest.TestCase):
 
     def test_configuration_composition_patterns(self):
         """Test advanced composition patterns."""
-        config = self.mirror.reflect_typed(
+        config = self.mirror.reflect(
             'tests/configs/composition_pattern.json',
             FullApplicationConfig
         )

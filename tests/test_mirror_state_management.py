@@ -30,12 +30,12 @@ class TestMirrorStateManagement(unittest.TestCase):
         mirror = Mirror('tests.fixtures')
         
         # Load first configuration with singleton "shared_service"
-        config1 = mirror.reflect_typed('tests/configs/state_test_1.json', SimpleConfig)
+        config1 = mirror.reflect('tests/configs/state_test_1.json', SimpleConfig)
         self.assertEqual(config1.service.name, "first_service")
         
         # Load second configuration with same singleton name "shared_service"
         # This should work without duplicate singleton error
-        config2 = mirror.reflect_typed('tests/configs/state_test_2.json', SimpleConfig)
+        config2 = mirror.reflect('tests/configs/state_test_2.json', SimpleConfig)
         self.assertEqual(config2.service.name, "second_service")
         
         # Verify they are different instances
@@ -63,7 +63,7 @@ class TestMirrorStateManagement(unittest.TestCase):
         mirror = Mirror('tests.fixtures')
         
         # Load with typed reflection
-        typed_config = mirror.reflect_typed('tests/configs/state_test_1.json', SimpleConfig)
+        typed_config = mirror.reflect('tests/configs/state_test_1.json', SimpleConfig)
         self.assertEqual(typed_config.service.name, "first_service")
         
         # Load with raw reflection using same singleton name
@@ -79,15 +79,15 @@ class TestMirrorStateManagement(unittest.TestCase):
         mirror = Mirror('tests.fixtures')
         
         # Load simple service configuration
-        simple_config = mirror.reflect_typed('tests/configs/state_test_1.json', SimpleConfig)
+        simple_config = mirror.reflect('tests/configs/state_test_1.json', SimpleConfig)
         self.assertEqual(simple_config.service.name, "first_service")
         
         # Load database configuration (different structure)
-        db_config = mirror.reflect_typed('tests/configs/state_test_db.json', DatabaseConfig)
+        db_config = mirror.reflect('tests/configs/state_test_db.json', DatabaseConfig)
         self.assertEqual(db_config.database.host, "state.test.db")
         
         # Load simple service again with same singleton name
-        simple_config2 = mirror.reflect_typed('tests/configs/state_test_2.json', SimpleConfig)
+        simple_config2 = mirror.reflect('tests/configs/state_test_2.json', SimpleConfig)
         self.assertEqual(simple_config2.service.name, "second_service")
 
     def test_singleton_references_cleared_between_loads(self):
@@ -113,11 +113,11 @@ class TestMirrorStateManagement(unittest.TestCase):
         mirror = Mirror('tests.fixtures')
         
         # Load first configuration
-        config1 = mirror.reflect_typed('tests/configs/state_test_1.json', SimpleConfig)
+        config1 = mirror.reflect('tests/configs/state_test_1.json', SimpleConfig)
         self.assertIsInstance(config1.service, SimpleService)
         
         # Load second configuration - should not have any leftover state
-        config2 = mirror.reflect_typed('tests/configs/state_test_2.json', SimpleConfig)
+        config2 = mirror.reflect('tests/configs/state_test_2.json', SimpleConfig)
         self.assertIsInstance(config2.service, SimpleService)
         
         # Verify clean state by checking they're independent
