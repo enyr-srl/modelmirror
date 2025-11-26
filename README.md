@@ -441,7 +441,9 @@ class FlexibleConfig(BaseModel):
 config = mirror.reflect('minimal_config.json', FlexibleConfig)
 ```
 
-## Advanced: Custom Reference Parsers
+## Advanced: Mirror Customization
+
+### Custom Reference Parsers
 
 Create custom parsers for specialized reference formats:
 
@@ -467,7 +469,80 @@ class VersionedReferenceParser(ReferenceParser):
         return ParsedReference(id=id_part, instance=instance)
 
 # Use your custom parser
-mirror = Mirror('myapp', reference_parser=VersionedReferenceParser())
+mirror = Mirror('myapp', parser=VersionedReferenceParser())
+```
+
+### Custom Placeholders
+
+Change the placeholder field from `$mirror` to anything you prefer:
+
+```python
+# Use $ref instead of $mirror
+mirror = Mirror('myapp', placeholder='$ref')
+
+# Use $create for a more descriptive name
+mirror = Mirror('myapp', placeholder='$create')
+
+# Use $service for domain-specific naming
+mirror = Mirror('myapp', placeholder='$service')
+```
+
+**JSON with custom placeholder:**
+```json
+{
+    "my_service": {
+        "$ref": "service:shared",
+        "name": "Custom Placeholder Example"
+    }
+}
+```
+
+### Combining Custom Parser and Placeholder
+
+```python
+class AtSymbolParser(ReferenceParser):
+    """Uses @ for instances: service@instance"""
+
+    def _validate(self, reference: str) -> FormatValidation:
+        return FormatValidation(True)
+
+    def _parse(self, reference: str) -> ParsedReference:
+        if '@' in reference:
+            id_part, instance = reference.split('@', 1)
+            return ParsedReference(id=id_part, instance=instance)
+        return ParsedReference(id=reference, instance=None)
+
+# Combine custom parser with custom placeholder
+mirror = Mirror(
+    'myapp',
+    parser=AtSymbolParser(),
+    placeholder='$build'
+)
+```
+
+**JSON with both customizations:**
+```json
+{
+    "database": {
+        "$build": "database@shared_db",
+        "host": "localhost",
+        "port": 5432
+    },
+    "service": {
+        "$build": "service",
+        "database": "$shared_db"
+    }
+}
+```
+
+### Mirror Constructor Options
+
+```python
+mirror = Mirror(
+    package_name='myapp',           # Package to scan for registers
+    parser=DefaultReferenceParser(), # Reference parser (default: DefaultReferenceParser)
+    placeholder='$mirror'           # JSON field name (default: '$mirror')
+)
 ```
 
 ## Pro Tips
