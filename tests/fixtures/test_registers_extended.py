@@ -2,15 +2,14 @@
 Class registers for extended testing classes.
 """
 
-from modelmirror.class_provider.class_register import ClassRegister
 from modelmirror.class_provider.class_reference import ClassReference
-
+from modelmirror.class_provider.class_register import ClassRegister
 from tests.fixtures.test_classes_extended import (
-    TestService,
-    MutableDefaultService, 
     FastAPILikeService,
+    MutableDefaultService,
     StatefulService,
-    ValidationSensitiveService
+    TestService,
+    ValidationSensitiveService,
 )
 
 

@@ -3,13 +3,20 @@ Class registers for test fixtures.
 These registers link the test classes to their schema identifiers.
 """
 
-from modelmirror.class_provider.class_register import ClassRegister
 from modelmirror.class_provider.class_reference import ClassReference
-
+from modelmirror.class_provider.class_register import ClassRegister
 from tests.fixtures.test_classes import (
-    SimpleService, DatabaseService, UserService, ConfigurableService,
-    ComplexService, ServiceWithDefaults, ServiceWithOptionals,
-    ListService, DictService, NestedService, ValidationService
+    ComplexService,
+    ConfigurableService,
+    DatabaseService,
+    DictService,
+    ListService,
+    NestedService,
+    ServiceWithDefaults,
+    ServiceWithOptionals,
+    SimpleService,
+    UserService,
+    ValidationService,
 )
 
 

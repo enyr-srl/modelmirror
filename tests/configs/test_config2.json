@@ -1,7 +1,7 @@
 {
     "service": {
         "$mirror": "test_service:shared_instance",
-        "name": "second_config", 
+        "name": "second_config",
         "value": 200
     },
     "mutable_service": {
