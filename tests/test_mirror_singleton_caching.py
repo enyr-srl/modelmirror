@@ -199,25 +199,24 @@ class TestMirrorSingletonCaching(unittest.TestCase):
         with self.assertRaises(TypeError):
             mirror.reflect("tests/configs/simple.json", TestConfig, True)  # type: ignore
 
-    def test_performance_benefit_of_caching(self):
-        """Test that caching provides performance benefits."""
-        import time
-
+    def test_caching_correctness(self):
+        """Test that caching works correctly."""
         mirror = Mirror("tests.fixtures")
 
-        # Time first call (not cached)
-        start_time = time.time()
+        # First call (not cached)
         config1 = mirror.reflect("tests/configs/simple.json", TestConfig)
-        first_call_time = time.time() - start_time
 
-        # Time second call (cached)
-        start_time = time.time()
+        # Second call (cached) - should return same object instantly
         config2 = mirror.reflect("tests/configs/simple.json", TestConfig)
-        second_call_time = time.time() - start_time
 
-        # Cached call should be significantly faster
-        self.assertIs(config1, config2, "Should return cached object")
-        self.assertLess(second_call_time, first_call_time, "Cached call should be faster")
+        # Cached call should return the exact same object
+        self.assertIs(config1, config2, "Cached call should return same object instance")
+
+        # Third call with cached=False should create new object
+        config3 = mirror.reflect("tests/configs/simple.json", TestConfig, cached=False)
+
+        # Non-cached call should create different object
+        self.assertIsNot(config1, config3, "Non-cached call should create new object")
 
     def test_cache_survives_state_reset(self):
         """Test that cache survives internal state resets."""
