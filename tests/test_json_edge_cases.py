@@ -30,7 +30,7 @@ class TestJSONEdgeCases(unittest.TestCase):
         class EmptyConfig(BaseModel):
             pass
         
-        config = self.mirror.reflect('tests/configs/empty.json', EmptyConfig)
+        config = self.mirror.reflect('tests/configs/empty.json', EmptyConfig, cached=False)
         self.assertIsInstance(config, EmptyConfig)
 
     def test_json_with_only_primitives(self):

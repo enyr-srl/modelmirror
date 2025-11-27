@@ -23,12 +23,32 @@ T = TypeVar("T", bound=BaseModel)
 class Mirror:
     """Fixed Mirror implementation with proper isolation."""
 
+    _instances: dict[str, "Mirror"] = {}
+    _global_cache: dict[str, Any] = {}
+
+    def __new__(
+        cls,
+        package_name: str = "app",
+        parser: ReferenceParser = DefaultReferenceParser(),
+        placeholder: str = "$mirror",
+    ):
+        instance_key = f"{package_name}:{type(parser).__name__}:{placeholder}"
+
+        if instance_key not in cls._instances:
+            instance = super().__new__(cls)
+            cls._instances[instance_key] = instance
+
+        return cls._instances[instance_key]
+
     def __init__(
         self,
         package_name: str = "app",
         parser: ReferenceParser = DefaultReferenceParser(),
         placeholder: str = "$mirror",
     ):
+        if hasattr(self, "_initialized"):
+            return
+
         self.__parser = parser or DefaultReferenceParser()
         self.__placeholder = placeholder
 
@@ -37,9 +57,24 @@ class Mirror:
         self.__instance_properties: dict[str, InstanceProperties] = {}
         self.__reference_service = ReferenceService()
         self.__singleton_path: dict[str, str] = {}
+        self._initialized = True
 
-    def reflect(self, config_path: str, model: type[T]) -> T:
-        """Reflect configuration with proper isolation."""
+    def reflect(self, config_path: str, model: type[T], *, cached: bool = True) -> T:
+        """Reflect configuration with optional caching."""
+        if not cached:
+            return self.__reflect_fresh(config_path, model)
+
+        cache_key = f"{config_path}:{model.__name__}"
+
+        if cache_key in Mirror._global_cache:
+            return Mirror._global_cache[cache_key]
+
+        result = self.__reflect_fresh(config_path, model)
+        Mirror._global_cache[cache_key] = result
+        return result
+
+    def __reflect_fresh(self, config_path: str, model: type[T]) -> T:
+        """Create a fresh reflection without caching."""
         self.__reset_state()
 
         reflection_config_file = self.__get_reflection_config_file(config_path)
@@ -51,8 +86,22 @@ class Mirror:
             raw_model = json_utils.json_load_with_context(file, hook=self.__instantiate_model(instances))
             return model(**raw_model)
 
-    def reflect_raw(self, config_path: str) -> Reflections:
-        """Reflect configuration returning raw instances."""
+    def reflect_raw(self, config_path: str, *, cached: bool = True) -> Reflections:
+        """Reflect configuration returning raw instances with optional caching."""
+        if not cached:
+            return self.__reflect_raw_fresh(config_path)
+
+        cache_key = f"{config_path}:raw"
+
+        if cache_key in Mirror._global_cache:
+            return Mirror._global_cache[cache_key]
+
+        result = self.__reflect_raw_fresh(config_path)
+        Mirror._global_cache[cache_key] = result
+        return result
+
+    def __reflect_raw_fresh(self, config_path: str) -> Reflections:
+        """Create a fresh raw reflection without caching."""
         self.__reset_state()
 
         reflection_config_file = self.__get_reflection_config_file(config_path)
@@ -65,6 +114,17 @@ class Mirror:
         self.__instance_properties = {}
         self.__reference_service = ReferenceService()
         self.__singleton_path = {}
+
+    @classmethod
+    def clear_cache(cls):
+        """Clear the global reflection cache."""
+        cls._global_cache = {}
+
+    @classmethod
+    def clear_instances(cls):
+        """Clear all singleton Mirror instances."""
+        cls._instances = {}
+        cls._global_cache = {}
 
     def __instantiate_model(self, instances: dict[str, Any]):
         def _hook(node_context: json_utils.NodeContext) -> Any:

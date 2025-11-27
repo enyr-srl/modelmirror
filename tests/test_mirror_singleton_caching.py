@@ -1,0 +1,248 @@
+"""
+Test suite for Mirror singleton behavior and caching functionality.
+"""
+
+import unittest
+from pydantic import BaseModel, ConfigDict
+
+from modelmirror.mirror import Mirror
+from tests.fixtures.test_classes import SimpleService, DatabaseService
+
+
+class TestConfig(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    service: SimpleService
+
+
+class DatabaseConfig(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    database: DatabaseService
+
+
+class TestMirrorSingletonCaching(unittest.TestCase):
+    """Test Mirror singleton behavior and caching functionality."""
+
+    def setUp(self):
+        """Clear all caches and instances before each test."""
+        Mirror.clear_instances()
+
+    def test_mirror_singleton_behavior(self):
+        """Test that Mirror instances are singletons with same parameters."""
+        mirror1 = Mirror('tests.fixtures')
+        mirror2 = Mirror('tests.fixtures')
+        
+        # Same parameters should return same instance
+        self.assertIs(mirror1, mirror2, "Same parameters should return same Mirror instance")
+
+    def test_mirror_different_parameters_create_different_instances(self):
+        """Test that different parameters create different Mirror instances."""
+        mirror1 = Mirror('tests.fixtures')
+        mirror2 = Mirror('tests.fixtures', placeholder='$ref')
+        
+        # Different parameters should create different instances
+        self.assertIsNot(mirror1, mirror2, "Different parameters should create different instances")
+
+    def test_reflect_cached_by_default(self):
+        """Test that reflect() caches results by default."""
+        mirror = Mirror('tests.fixtures')
+        
+        # First call
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        
+        # Second call should return same cached object
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        
+        self.assertIs(config1, config2, "Default behavior should cache reflections")
+
+    def test_reflect_cached_explicit(self):
+        """Test that reflect(cached=True) caches results."""
+        mirror = Mirror('tests.fixtures')
+        
+        # First call with explicit caching
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=True)
+        
+        # Second call should return same cached object
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=True)
+        
+        self.assertIs(config1, config2, "Explicit cached=True should cache reflections")
+
+    def test_reflect_not_cached(self):
+        """Test that reflect(cached=False) creates fresh instances."""
+        mirror = Mirror('tests.fixtures')
+        
+        # First call without caching
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=False)
+        
+        # Second call should return different object
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=False)
+        
+        self.assertIsNot(config1, config2, "cached=False should create fresh instances")
+
+    def test_reflect_mixed_caching(self):
+        """Test mixing cached and non-cached calls."""
+        mirror = Mirror('tests.fixtures')
+        
+        # First call cached
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=True)
+        
+        # Second call not cached
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=False)
+        
+        # Third call cached (should return same as first)
+        config3 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=True)
+        
+        self.assertIsNot(config1, config2, "Cached and non-cached should be different")
+        self.assertIs(config1, config3, "Cached calls should return same object")
+
+    def test_reflect_raw_cached_by_default(self):
+        """Test that reflect_raw() caches results by default."""
+        mirror = Mirror('tests.fixtures')
+        
+        # First call
+        raw1 = mirror.reflect_raw('tests/configs/simple.json')
+        
+        # Second call should return same cached object
+        raw2 = mirror.reflect_raw('tests/configs/simple.json')
+        
+        self.assertIs(raw1, raw2, "Default behavior should cache raw reflections")
+
+    def test_reflect_raw_not_cached(self):
+        """Test that reflect_raw(cached=False) creates fresh instances."""
+        mirror = Mirror('tests.fixtures')
+        
+        # First call without caching
+        raw1 = mirror.reflect_raw('tests/configs/simple.json', cached=False)
+        
+        # Second call should return different object
+        raw2 = mirror.reflect_raw('tests/configs/simple.json', cached=False)
+        
+        self.assertIsNot(raw1, raw2, "cached=False should create fresh raw instances")
+
+    def test_global_cache_across_mirror_instances(self):
+        """Test that cache is shared across Mirror instances."""
+        mirror1 = Mirror('tests.fixtures')
+        mirror2 = Mirror('tests.fixtures')
+        
+        # First call on mirror1
+        config1 = mirror1.reflect('tests/configs/simple.json', TestConfig)
+        
+        # Second call on mirror2 should return same cached object
+        config2 = mirror2.reflect('tests/configs/simple.json', TestConfig)
+        
+        self.assertIs(config1, config2, "Cache should be shared across Mirror instances")
+
+    def test_different_config_files_cached_separately(self):
+        """Test that different config files are cached separately."""
+        mirror = Mirror('tests.fixtures')
+        
+        # Different config files
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        config2 = mirror.reflect('tests/configs/database.json', DatabaseConfig)
+        
+        self.assertIsNot(config1, config2, "Different configs should be cached separately")
+
+    def test_different_model_types_cached_separately(self):
+        """Test that different model types are cached separately."""
+        mirror = Mirror('tests.fixtures')
+        
+        # Same config, different model types
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        raw1 = mirror.reflect_raw('tests/configs/simple.json')
+        
+        self.assertIsNot(config1, raw1, "Different model types should be cached separately")
+
+    def test_clear_cache_functionality(self):
+        """Test that clear_cache() clears all cached reflections."""
+        mirror = Mirror('tests.fixtures')
+        
+        # Create cached reflection
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        
+        # Clear cache
+        Mirror.clear_cache()
+        
+        # Next call should create new instance
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        
+        self.assertIsNot(config1, config2, "clear_cache() should invalidate cached reflections")
+
+    def test_clear_instances_functionality(self):
+        """Test that clear_instances() clears Mirror instances and cache."""
+        mirror1 = Mirror('tests.fixtures')
+        config1 = mirror1.reflect('tests/configs/simple.json', TestConfig)
+        
+        # Clear all instances and cache
+        Mirror.clear_instances()
+        
+        # New Mirror instance should be different
+        mirror2 = Mirror('tests.fixtures')
+        config2 = mirror2.reflect('tests/configs/simple.json', TestConfig)
+        
+        self.assertIsNot(mirror1, mirror2, "clear_instances() should create new Mirror instances")
+        self.assertIsNot(config1, config2, "clear_instances() should clear cache")
+
+    def test_cache_key_uniqueness(self):
+        """Test that cache keys are unique for different combinations."""
+        mirror = Mirror('tests.fixtures')
+        
+        # Create different cached objects
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        config2 = mirror.reflect('tests/configs/database.json', DatabaseConfig)
+        raw1 = mirror.reflect_raw('tests/configs/simple.json')
+        raw2 = mirror.reflect_raw('tests/configs/database.json')
+        
+        # All should be different objects
+        objects = [config1, config2, raw1, raw2]
+        unique_ids = set(id(obj) for obj in objects)
+        
+        self.assertEqual(len(unique_ids), 4, "All cached objects should be unique")
+
+    def test_cached_parameter_is_keyword_only(self):
+        """Test that cached parameter must be used as keyword argument."""
+        mirror = Mirror('tests.fixtures')
+        
+        # This should work (keyword argument)
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=True)
+        
+        # This should raise TypeError (positional argument)
+        with self.assertRaises(TypeError):
+            mirror.reflect('tests/configs/simple.json', TestConfig, True) # type: ignore
+
+    def test_performance_benefit_of_caching(self):
+        """Test that caching provides performance benefits."""
+        import time
+        
+        mirror = Mirror('tests.fixtures')
+        
+        # Time first call (not cached)
+        start_time = time.time()
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        first_call_time = time.time() - start_time
+        
+        # Time second call (cached)
+        start_time = time.time()
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        second_call_time = time.time() - start_time
+        
+        # Cached call should be significantly faster
+        self.assertIs(config1, config2, "Should return cached object")
+        self.assertLess(second_call_time, first_call_time, "Cached call should be faster")
+
+    def test_cache_survives_state_reset(self):
+        """Test that cache survives internal state resets."""
+        mirror = Mirror('tests.fixtures')
+        
+        # Create cached reflection
+        config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        
+        # Force state reset by calling reflect with different config
+        mirror.reflect('tests/configs/database.json', DatabaseConfig, cached=False)
+        
+        # Original cached object should still be returned
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig)
+        
+        self.assertIs(config1, config2, "Cache should survive internal state resets")
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)
