@@ -115,17 +115,6 @@ class Mirror:
         self.__reference_service = ReferenceService()
         self.__singleton_path = {}
 
-    @classmethod
-    def clear_cache(cls):
-        """Clear the global reflection cache."""
-        cls._global_cache = {}
-
-    @classmethod
-    def clear_instances(cls):
-        """Clear all singleton Mirror instances."""
-        cls._instances = {}
-        cls._global_cache = {}
-
     def __instantiate_model(self, instances: dict[str, Any]):
         def _hook(node_context: json_utils.NodeContext) -> Any:
             node = node_context.node

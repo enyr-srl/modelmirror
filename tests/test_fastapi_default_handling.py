@@ -47,8 +47,6 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
         service2 = config2.fastapi_service
         
         # Check if the defaults were corrupted
-        print(f"Service1 dependencies: {service1.dependencies}")
-        print(f"Service2 dependencies: {service2.dependencies}")
         
         # Service2 should have proper defaults
         if service1 is service2:  # Same singleton instance
@@ -59,7 +57,7 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
                            "New instance should have clean default dependencies")
 
     def test_mutable_defaults_behavior_between_instances(self):
-        """Test mutable defaults behavior (standard Python behavior)."""
+        """Test mutable defaults behavior (proper defensive copying)."""
         # Create first instance
         service1 = MutableDefaultService("service1")
         
@@ -70,9 +68,17 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
         # Create second instance
         service2 = MutableDefaultService("service2")
         
-        # This is standard Python mutable default behavior
-        print(f"Service1 config: {service1.config}")
-        print(f"Service2 config: {service2.config}")
+        # MutableDefaultService uses defensive copying (config or {...}) so instances don't share defaults
+        self.assertNotEqual(service1.config, service2.config,
+                           "Instances should have separate default configs (defensive copying)")
+        self.assertNotEqual(service1.items, service2.items,
+                           "Instances should have separate default lists (defensive copying)")
+        
+        # Verify second instance has clean defaults
+        self.assertEqual(service2.config, {"default": "value"},
+                        "Second instance should have clean default config")
+        self.assertEqual(service2.items, ["default"],
+                        "Second instance should have clean default items")
 
     def test_class_preservation_across_instances(self):
         """Test that class definitions are preserved across instances."""
@@ -109,12 +115,6 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
             validation_added = False
         except Exception as e:
             validation_added = True
-            print(f"Validation error: {e}")
-        
-        if validation_added:
-            print("Unexpected validation error")
-        else:
-            print("Validation properly isolated")
         
         self.assertFalse(validation_added, "Validation should be properly isolated")
 
@@ -135,15 +135,16 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
         config2 = mirror2.reflect('tests/configs/test_config2.json', FastAPIConfig)
         service2 = config2.fastapi_service
         
-        # Check if state is properly isolated between mirrors
-        print(f"Mirror1 service dependencies: {service1.dependencies}")
-        print(f"Mirror2 service dependencies: {service2.dependencies}")
+        # Both mirrors should be the same singleton instance
+        self.assertIs(mirror1, mirror2, "Mirror instances should be singletons")
         
-        # Services should be properly isolated
+        # Services should be properly isolated based on configuration
         if service1 is service2:
-            print("Same singleton instance (expected behavior)")
+            self.assertEqual(service1.dependencies, service2.dependencies,
+                           "Same singleton should maintain consistent state")
         else:
-            print("Different instances (proper isolation)")
+            self.assertNotEqual(service1.dependencies, service2.dependencies,
+                              "Different instances should have different states")
 
     def test_concurrent_mirror_usage_safety(self):
         """Test that concurrent Mirror usage is safe."""
@@ -154,11 +155,7 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
         
         # All mirrors should see the same unmodified class
         original_class = FastAPILikeService
-        
-        for i, mirror in enumerate(mirrors):
-            # Each mirror should see the same unmodified class
-            print(f"Mirror {i} sees FastAPILikeService.__init__: {original_class.__init__}")
-        
+                
         # All mirrors see the same original class
         self.assertIs(FastAPILikeService.__init__, self.original_fastapi_init,
                      "All mirrors should see the same original class")
@@ -192,7 +189,6 @@ class TestFastAPIDefaultHandling(unittest.TestCase):
             # Class should remain unmodified regardless of TESTING variable
             modified_init = FastAPILikeService.__init__
             
-            print(f"With TESTING=true, __init__ is: {modified_init}")
             
             # Should be the same as original
             self.assertIs(modified_init, self.original_fastapi_init,

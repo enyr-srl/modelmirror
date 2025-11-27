@@ -22,9 +22,7 @@ class DatabaseConfig(BaseModel):
 class TestMirrorSingletonCaching(unittest.TestCase):
     """Test Mirror singleton behavior and caching functionality."""
 
-    def setUp(self):
-        """Clear all caches and instances before each test."""
-        Mirror.clear_instances()
+
 
     def test_mirror_singleton_behavior(self):
         """Test that Mirror instances are singletons with same parameters."""
@@ -151,35 +149,29 @@ class TestMirrorSingletonCaching(unittest.TestCase):
         
         self.assertIsNot(config1, raw1, "Different model types should be cached separately")
 
-    def test_clear_cache_functionality(self):
-        """Test that clear_cache() clears all cached reflections."""
+    def test_cached_vs_non_cached_behavior(self):
+        """Test difference between cached and non-cached reflections."""
         mirror = Mirror('tests.fixtures')
         
         # Create cached reflection
         config1 = mirror.reflect('tests/configs/simple.json', TestConfig)
         
-        # Clear cache
-        Mirror.clear_cache()
+        # Create non-cached reflection
+        config2 = mirror.reflect('tests/configs/simple.json', TestConfig, cached=False)
         
-        # Next call should create new instance
-        config2 = mirror.reflect('tests/configs/simple.json', TestConfig)
-        
-        self.assertIsNot(config1, config2, "clear_cache() should invalidate cached reflections")
+        self.assertIsNot(config1, config2, "Cached and non-cached should be different objects")
 
-    def test_clear_instances_functionality(self):
-        """Test that clear_instances() clears Mirror instances and cache."""
+    def test_mirror_singleton_persistence(self):
+        """Test that Mirror instances persist as singletons."""
         mirror1 = Mirror('tests.fixtures')
         config1 = mirror1.reflect('tests/configs/simple.json', TestConfig)
         
-        # Clear all instances and cache
-        Mirror.clear_instances()
-        
-        # New Mirror instance should be different
+        # Create another Mirror with same parameters
         mirror2 = Mirror('tests.fixtures')
         config2 = mirror2.reflect('tests/configs/simple.json', TestConfig)
         
-        self.assertIsNot(mirror1, mirror2, "clear_instances() should create new Mirror instances")
-        self.assertIsNot(config1, config2, "clear_instances() should clear cache")
+        self.assertIs(mirror1, mirror2, "Same parameters should return same Mirror instance")
+        self.assertIs(config1, config2, "Cached reflections should be shared across singleton instances")
 
     def test_cache_key_uniqueness(self):
         """Test that cache keys are unique for different combinations."""

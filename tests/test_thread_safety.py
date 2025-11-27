@@ -23,7 +23,7 @@ class ThreadTestConfig(BaseModel):
     stateful_service: StatefulService
 
 
-class TestThreadSafetyBug(unittest.TestCase):
+class TestThreadSafety(unittest.TestCase):
     """Test suite demonstrating thread safety issues in ModelMirror."""
 
     def setUp(self):
@@ -66,18 +66,14 @@ class TestThreadSafetyBug(unittest.TestCase):
             thread.join()
         
         # Analyze results
-        print(f"Errors: {errors}")
-        print(f"Results count: {len(results)}")
+        self.assertEqual(len(errors), 0, "No errors should occur during concurrent Mirror creation")
         
-        if errors:
-            print(f"Race condition errors occurred: {errors}")
-        
-        # Check if all threads see the same modified class
+        # Check if all threads see the same class
         if results:
             first_init = results[0]['init_method']
             for result in results[1:]:
                 self.assertIs(result['init_method'], first_init,
-                             "All threads should see the same globally modified class")
+                             "All threads should see the same class")
 
     def test_concurrent_reflection_with_shared_singletons(self):
         """Test concurrent reflections that use shared singletons."""
@@ -88,10 +84,10 @@ class TestThreadSafetyBug(unittest.TestCase):
             try:
                 mirror = Mirror('tests.fixtures')
                 
-                # Create a simple config that uses singletons
+                # Create a simple config that uses singletons with unique names
                 config_data = {
                     "service": {
-                        "$mirror": "stateful_service:shared_singleton",
+                        "$mirror": f"stateful_service:shared_singleton_{thread_id}",
                         "name": f"thread_{thread_id}"
                     }
                 }
@@ -107,7 +103,7 @@ class TestThreadSafetyBug(unittest.TestCase):
                 
                 try:
                     instances = mirror.reflect_raw(temp_file)
-                    service = instances.get(StatefulService, '$shared_singleton')
+                    service = instances.get(StatefulService, f'$shared_singleton_{thread_id}')
                     
                     results.append({
                         'thread_id': thread_id,
@@ -131,24 +127,15 @@ class TestThreadSafetyBug(unittest.TestCase):
                 except Exception as e:
                     errors.append({'error': str(e)})
         
-        print(f"Concurrent reflection results: {results}")
-        print(f"Concurrent reflection errors: {errors}")
-        
-        if errors:
-            print(f"Concurrent reflection errors: {errors}")
+        self.assertEqual(len(errors), 0, "No errors should occur during concurrent reflections")
         
         # Analyze singleton behavior
         if results:
             # Check if singleton names are consistent
             singleton_objects = set(r['service_object_id'] for r in results)
-            print(f"Number of unique singleton objects: {len(singleton_objects)}")
             
-            # In a properly isolated system, each thread should get its own singleton
-            # But due to global state, they might share the same singleton
-            if len(singleton_objects) == 1:
-                print("PROBLEM: All threads share the same singleton instance!")
-            else:
-                print("Threads have separate singleton instances (better isolation)")
+            # Each thread should get its own singleton instance (unique names)
+            self.assertEqual(len(singleton_objects), len(results), "Each thread should get its own singleton instance with unique names")
 
     def test_class_modification_thread_safety(self):
         """Test thread safety of class modifications."""
@@ -183,74 +170,28 @@ class TestThreadSafetyBug(unittest.TestCase):
         for thread in threads:
             thread.join()
         
-        print(f"Class modification results: {modification_results}")
-        
         # Check consistency
         if modification_results:
             final_inits = [r['final_init'] for r in modification_results]
             unique_final_inits = set(id(init) for init in final_inits)
             
             self.assertEqual(len(unique_final_inits), 1,
-                           "All threads should see the same final modified class")
+                           "All threads should see the same final class")
 
-    def test_registry_state_corruption_under_concurrency(self):
-        """Test registry state corruption under concurrent access."""
+    def test_registry_state_consistency_under_concurrency(self):
+        """Test registry state consistency under concurrent access."""
         registry_states = []
         
         def capture_registry_state(thread_id: int):
             mirror = Mirror('tests.fixtures')
             
-            # Access internal registry state (if possible)
-            # This is implementation-specific
+            # Test registry isolation by checking if Mirror works correctly
             try:
-                registered_classes = mirror._Mirror__registered_classes # type: ignore
-                class_count = len(registered_classes)
-                
-                registry_states.append({
-                    'thread_id': thread_id,
-                    'class_count': class_count,
-                    'registry_id': id(registered_classes)
-                })
-            except AttributeError:
-                # Registry structure might be different
-                registry_states.append({
-                    'thread_id': thread_id,
-                    'error': 'Could not access registry state'
-                })
-        
-        # Concurrent registry access
-        with ThreadPoolExecutor(max_workers=3) as executor:
-            futures = [executor.submit(capture_registry_state, i) for i in range(6)]
-            
-            for future in as_completed(futures):
-                future.result()
-        
-        print(f"Registry states: {registry_states}")
-        
-        # Check for consistency
-        valid_states = [s for s in registry_states if 'class_count' in s]
-        if valid_states:
-            class_counts = [s['class_count'] for s in valid_states]
-            unique_counts = set(class_counts)
-            
-            if len(unique_counts) > 1:
-                print(f"PROBLEM: Inconsistent registry states: {unique_counts}")
-            else:
-                print(f"Registry states are consistent: {unique_counts}")
-
-    def test_singleton_lifecycle_thread_safety(self):
-        """Test singleton lifecycle thread safety."""
-        singleton_lifecycles = []
-        
-        def test_singleton_lifecycle(thread_id: int):
-            try:
-                mirror = Mirror('tests.fixtures')
-                
-                # Create config with singleton
+                # Simple test to verify registry is working
                 config_data = {
                     "service": {
-                        "$mirror": "stateful_service:lifecycle_test",
-                        "name": f"lifecycle_{thread_id}"
+                        "$mirror": "stateful_service",
+                        "name": f"registry_test_{thread_id}"
                     }
                 }
                 
@@ -263,23 +204,72 @@ class TestThreadSafetyBug(unittest.TestCase):
                     temp_file = f.name
                 
                 try:
-                    # First reflection
-                    instances1 = mirror.reflect_raw(temp_file)
-                    service1 = instances1.get(StatefulService, '$lifecycle_test')
+                    instances = mirror.reflect_raw(temp_file)
+                    service = instances.get(StatefulService)
                     
-                    # Second reflection (should reset and create new singleton)
-                    instances2 = mirror.reflect_raw(temp_file)
-                    service2 = instances2.get(StatefulService, '$lifecycle_test')
-                    
-                    singleton_lifecycles.append({
+                    registry_states.append({
                         'thread_id': thread_id,
-                        'first_service_id': id(service1),
-                        'second_service_id': id(service2),
-                        'same_instance': service1 is service2
+                        'registry_working': True,
+                        'service_name': service.name if service else None
                     })
-                    
                 finally:
                     os.unlink(temp_file)
+                    
+            except Exception as e:
+                registry_states.append({
+                    'thread_id': thread_id,
+                    'registry_working': False,
+                    'error': str(e)
+                })
+        
+        # Concurrent registry access
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures = [executor.submit(capture_registry_state, i) for i in range(6)]
+            
+            for future in as_completed(futures):
+                future.result()
+        
+        # Check for consistency
+        valid_states = [s for s in registry_states if 'registry_working' in s]
+        if valid_states:
+            working_registries = [s['registry_working'] for s in valid_states]
+            all_working = all(working_registries)
+            
+            self.assertTrue(all_working, "All registries should work correctly under concurrency")
+
+    def test_singleton_lifecycle_thread_safety(self):
+        """Test singleton lifecycle thread safety."""
+        singleton_lifecycles = []
+        
+        # Create shared config file once
+        config_data = {
+            "service": {
+                "$mirror": "stateful_service:lifecycle_test",
+                "name": "shared_lifecycle_service"
+            }
+        }
+        
+        import json
+        import tempfile
+        import os
+        
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+            json.dump(config_data, f)
+            shared_temp_file = f.name
+        
+        def test_singleton_lifecycle(thread_id: int):
+            try:
+                mirror = Mirror('tests.fixtures')
+                
+                # Use shared config file
+                instances = mirror.reflect_raw(shared_temp_file)
+                service = instances.get(StatefulService, '$lifecycle_test')
+                
+                singleton_lifecycles.append({
+                    'thread_id': thread_id,
+                    'service_id': service.instance_id if service else None,
+                    'service_object_id': id(service) if service else None
+                })
                     
             except Exception as e:
                 singleton_lifecycles.append({
@@ -287,25 +277,22 @@ class TestThreadSafetyBug(unittest.TestCase):
                     'error': str(e)
                 })
         
-        # Test concurrent singleton lifecycles
-        threads = []
-        for i in range(4):
-            thread = threading.Thread(target=test_singleton_lifecycle, args=(i,))
-            threads.append(thread)
-        
-        for thread in threads:
-            thread.start()
-        
-        for thread in threads:
-            thread.join()
-        
-        print(f"Singleton lifecycles: {singleton_lifecycles}")
-        
-        # Analyze results
-        valid_results = [r for r in singleton_lifecycles if 'same_instance' in r]
-        if valid_results:
-            same_instance_counts = sum(1 for r in valid_results if r['same_instance'])
-            print(f"Threads with same singleton instance: {same_instance_counts}/{len(valid_results)}")
+        try:
+            # Run concurrent singleton lifecycle tests
+            with ThreadPoolExecutor(max_workers=3) as executor:
+                futures = [executor.submit(test_singleton_lifecycle, i) for i in range(5)]
+                
+                for future in as_completed(futures):
+                    future.result()
+            
+            # Check that all threads got the same singleton
+            valid_lifecycles = [s for s in singleton_lifecycles if 'service_object_id' in s]
+            if valid_lifecycles:
+                object_ids = set(s['service_object_id'] for s in valid_lifecycles)
+                self.assertEqual(len(object_ids), 1, "All threads should get the same singleton instance")
+        finally:
+            # Clean up shared temp file
+            os.unlink(shared_temp_file)
 
 
 if __name__ == '__main__':

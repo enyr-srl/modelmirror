@@ -145,8 +145,6 @@ class TestStateIsolation(unittest.TestCase):
         classes2 = scanner2.scan()
         
         # Classes should be properly isolated
-        print(f"Scanner1 found {len(classes1)} classes")
-        print(f"Scanner2 found {len(classes2)} classes")
         
         # Both should find the same number of classes
         self.assertEqual(len(classes1), len(classes2),
@@ -224,7 +222,6 @@ class TestIsolationVerification(unittest.TestCase):
             self.assertTrue(hasattr(mirror, '_Mirror__reset_state'),
                            "Automatic cleanup mechanism should be available")
         
-        print("✅ Success")
 
 
 if __name__ == '__main__':
