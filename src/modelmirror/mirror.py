@@ -19,7 +19,7 @@ class Mirror:
         package_name: str = "app",
         parser: ReferenceParser = DefaultReferenceParser(),
         placeholder: str = "$mirror",
-    ):
+    ) -> "Mirror":
         return MirrorSingletons.get_or_create_instance(cls, package_name, parser, placeholder)
 
     def __init__(

@@ -185,7 +185,7 @@ class CustomReferenceParser(ReferenceParser):
         pass
 
 # Use custom parser
-mirror = Mirror('myapp', reference_parser=CustomReferenceParser())
+mirror = Mirror('myapp', parser=CustomReferenceParser())
 ```
 
 **Built-in Parser Features:**
@@ -544,6 +544,68 @@ mirror = Mirror(
     placeholder='$mirror'           # JSON field name (default: '$mirror')
 )
 ```
+
+## Mirror Singleton Behavior and Caching
+
+### Mirror Instance Management
+
+Mirror instances are **singletons** - creating multiple Mirror instances with the same parameters returns the exact same object:
+
+```python
+# These are the same instance
+mirror1 = Mirror('myapp')
+mirror2 = Mirror('myapp')
+assert mirror1 is mirror2  # True
+
+# Different parameters create different instances
+mirror3 = Mirror('myapp', placeholder='$ref')
+assert mirror1 is not mirror3  # True
+```
+
+**Singleton Key**: `package_name:parser_type:placeholder`
+
+### Automatic Caching
+
+By default, Mirror caches all reflections for performance:
+
+```python
+mirror = Mirror('myapp')
+
+# First call - processes configuration
+config1 = mirror.reflect('config.json', AppConfig)
+
+# Second call - returns cached result instantly
+config2 = mirror.reflect('config.json', AppConfig)
+assert config1 is config2  # True - same object
+
+# Force fresh processing
+config3 = mirror.reflect('config.json', AppConfig, cached=False)
+assert config1 is not config3  # True - different object
+```
+
+### Cache Behavior
+
+- **Global Cache**: Shared across all Mirror singleton instances
+- **Cache Keys**: `config_path:model_name` for typed reflections, `config_path:raw` for raw reflections
+- **Automatic**: Enabled by default for performance
+- **Optional**: Use `cached=False` to bypass cache
+
+```python
+# These share the same cache
+mirror1 = Mirror('myapp')
+mirror2 = Mirror('myapp')  # Same singleton
+
+config1 = mirror1.reflect('config.json', AppConfig)
+config2 = mirror2.reflect('config.json', AppConfig)
+assert config1 is config2  # True - shared cache
+```
+
+### Performance Benefits
+
+- **Instant Returns**: Cached reflections return immediately
+- **Memory Efficient**: Reuses objects instead of recreating
+- **Singleton Sharing**: Same instances across your application
+- **Configurable**: Use `cached=False` when you need fresh instances
 
 ## Pro Tips
 
