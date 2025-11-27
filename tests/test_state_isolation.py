@@ -184,9 +184,9 @@ class TestStateIsolation(unittest.TestCase):
         # Create Mirror
         mirror = Mirror('tests.fixtures')
         
-        # Automatic cleanup should be available via private method
-        self.assertTrue(hasattr(mirror, '_Mirror__reset_state'),
-                       "Automatic cleanup mechanism should be available")
+        # Automatic cleanup should be available via ReflectionEngine
+        self.assertTrue(hasattr(mirror, '_Mirror__engine'),
+                       "Mirror should have ReflectionEngine for state management")
         
         # Class should remain original
         self.assertIs(TestService.__init__, self.original_test_service_init,
@@ -217,10 +217,10 @@ class TestIsolationVerification(unittest.TestCase):
         self.assertIs(TestService.__init__, original_init,
                      "Class should remain unmodified after multiple Mirror instances")
         
-        # Automatic cleanup should be available via private method
+        # Automatic cleanup should be available via ReflectionEngine
         for mirror in mirrors:
-            self.assertTrue(hasattr(mirror, '_Mirror__reset_state'),
-                           "Automatic cleanup mechanism should be available")
+            self.assertTrue(hasattr(mirror, '_Mirror__engine'),
+                           "Mirror should have ReflectionEngine for state management")
         
 
 

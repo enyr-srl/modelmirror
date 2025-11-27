@@ -115,8 +115,8 @@ class TestClassIsolation(unittest.TestCase):
         modified_init = SimpleService.__init__
         is_modified = original_init is not modified_init
         
-        # Check for private reset method (automatic cleanup)
-        has_private_reset = hasattr(mirror, '_Mirror__reset_state')
+        # Check for ReflectionEngine (automatic cleanup)
+        has_private_reset = hasattr(mirror, '_Mirror__engine')
 
         self.assertFalse(is_modified, "Class should be preserved")
         self.assertTrue(has_private_reset, "Automatic cleanup mechanism should be available")

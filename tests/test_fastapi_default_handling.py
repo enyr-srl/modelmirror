@@ -4,9 +4,9 @@ Test for proper default parameter handling in FastAPI-like scenarios.
 
 import unittest
 from typing import Dict, List
+from modelmirror.mirror import Mirror
 from pydantic import BaseModel, ConfigDict
 
-from modelmirror.mirror import Mirror
 from tests.fixtures.test_classes_extended import FastAPILikeService, MutableDefaultService
 
 

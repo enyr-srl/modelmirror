@@ -43,8 +43,8 @@ class TestIsolationVerification(unittest.TestCase):
         except Exception as e:
             classes_work_normally = False
         
-        # Check for automatic cleanup mechanism availability
-        has_reset = hasattr(mirror1, '_Mirror__reset_state')
+        # Check for automatic cleanup mechanism availability via ReflectionEngine
+        has_reset = hasattr(mirror1, '_Mirror__engine')
                 
         # Assertions to verify proper isolation
         self.assertIs(original_simple_init, current_simple_init,
@@ -54,7 +54,7 @@ class TestIsolationVerification(unittest.TestCase):
         self.assertTrue(classes_work_normally,
                        "Original classes should work normally")
         self.assertTrue(has_reset,
-                       "Automatic cleanup mechanism should be available")
+                       "Automatic cleanup mechanism should be available via ReflectionEngine")
 
 
 if __name__ == '__main__':
