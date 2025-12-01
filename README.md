@@ -9,547 +9,529 @@ A Python library for automatic configuration management using JSON files. It let
 - **JSON Configuration**: Human-readable configuration files
 - **Automatic Dependency Injection**: Reference instances with `$name` syntax
 - **Singleton Management**: Reuse instances across your configuration
-- **Type Safety**: Optional Pydantic integration for type checking
+- **Type Safety**: Pydantic integration for type checking and validation
 - **Dependency Resolution**: Automatic topological sorting of dependencies
 
-## Tutorial 1: Quick Start - Your First Working Example
+## Quick Start - Complete Working Example
 
-Let's create a simple example with two classes: a `DatabaseService` and a `UserService` that depends on it.
+Here's a complete example you can copy and run:
 
 ### Step 1: Define Your Classes
 
 ```python
-# Your existing classes - no modifications required
+# app/services.py
 class DatabaseService:
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, database_name: str):
         self.host = host
         self.port = port
+        self.database_name = database_name
 
     def connect(self):
-        return f"Connected to {self.host}:{self.port}"
+        return f"Connected to {self.database_name} at {self.host}:{self.port}"
 
 class UserService:
-    def __init__(self, db: DatabaseService, cache_enabled: bool):
-        self.db = db
+    def __init__(self, database: DatabaseService, cache_enabled: bool):
+        self.database = database
         self.cache_enabled = cache_enabled
 
     def get_user(self, user_id: int):
-        connection = self.db.connect()
+        connection = self.database.connect()
         return f"User {user_id} from {connection} (cache: {self.cache_enabled})"
 ```
 
 ### Step 2: Register Your Classes
 
-Create registry entries that link your classes to schema identifiers:
-
 ```python
+# app/registers.py
 from modelmirror.class_provider.class_register import ClassRegister
 from modelmirror.class_provider.class_reference import ClassReference
+from .services import DatabaseService, UserService
 
-# Register DatabaseService with id "database"
-class DatabaseServiceRegister(ClassRegister,
-    reference=ClassReference(id="database", cls=DatabaseService)):
-    pass
+class DatabaseServiceRegister(ClassRegister):
+    reference = ClassReference(id="database", cls=DatabaseService)
 
-# Register UserService with id "user_service"
-class UserServiceRegister(ClassRegister,
-    reference=ClassReference(id="user_service", cls=UserService)):
-    pass
+class UserServiceRegister(ClassRegister):
+    reference = ClassReference(id="user_service", cls=UserService)
 ```
 
-### Step 3: Create JSON Configuration
-
-Create a `config.json` file that defines your instances:
-
-```json
-{
-    "my_database": {
-        "$mirror": "database:db_singleton",
-        "host": "localhost",
-        "port": 5432
-    },
-    "my_user_service": {
-        "$mirror": "user_service",
-        "db": "$db_singleton",
-        "cache_enabled": true
-    }
-}
-```
-
-### Step 4: Load and Use
+### Step 3: Create Pydantic Schema
 
 ```python
-from modelmirror.mirror import Mirror
-
-# Load configuration
-mirror = Mirror('myapp')  # 'myapp' is the package where your registers are defined
-instances = mirror.reflect_raw('config.json')
-
-# Get your configured instances
-user_service = instances.get(UserService)
-print(user_service.get_user(123))  # Output: User 123 from Connected to localhost:5432 (cache: True)
-```
-
-**That's it!** Your classes are now configured via JSON with automatic dependency injection.
-
-## Tutorial 2: Type-Safe Configuration with Pydantic
-
-For production applications, add type safety with Pydantic schemas. Just add your schema definition:
-
-```python
+# app/config.py
 from pydantic import BaseModel, ConfigDict
+from .services import DatabaseService, UserService
 
 class AppConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-    my_database: DatabaseService
-    my_user_service: UserService
-
-# Load with full type checking and IDE support
-config = mirror.reflect('config.json', AppConfig)
-print(config.my_database.host)  # Full autocomplete!
+    database: DatabaseService
+    user_service: UserService
 ```
 
-## Tutorial 3: Understanding References - The Heart of ModelMirror
-
-ModelMirror's power comes from its reference system. The `$mirror` field is what transforms JSON objects into live instances.
-
-### How `$mirror` Works
-
-The `$mirror` field uses a simple string format that ModelMirror parses to understand:
-1. **Which class to instantiate** (the registered ID)
-2. **Whether to create a singleton** (optional instance name)
-
-**Format**: `"class_id"` or `"class_id:instance_name"`
-
-### Basic Reference Structure
-
-Every object you want to mirror needs a `$mirror` field:
-
-```json
-{
-    "my_service": {
-        "$mirror": "service",
-        "name": "My Service"
-    }
-}
-```
-
-**What happens:**
-1. ModelMirror finds the class registered with ID "service"
-2. Creates a new instance: `ServiceClass(name="My Service")`
-3. Returns the configured object
-
-### Singleton References - Reuse Instances Anywhere
-
-Add `:instance_name` to create a reusable singleton:
+### Step 4: Create JSON Configuration
 
 ```json
 {
     "database": {
         "$mirror": "database:main_db",
         "host": "localhost",
-        "port": 5432
+        "port": 5432,
+        "database_name": "myapp"
     },
     "user_service": {
         "$mirror": "user_service",
-        "database": "$main_db"
-    },
-    "admin_service": {
-        "$mirror": "admin_service",
-        "database": "$main_db"
+        "database": "$main_db",
+        "cache_enabled": true
     }
 }
 ```
 
-**What happens:**
-1. `"database:main_db"` creates a singleton named "main_db"
-2. `"$main_db"` references inject the same database instance
-3. Both services share the **exact same** database object
-
-### Reference Parser Architecture
-
-ModelMirror uses a pluggable parser system to handle `$mirror` strings:
+### Step 5: Load and Use
 
 ```python
-from modelmirror.parser.key_parser import KeyParser
-from modelmirror.parser.default_key_parser import DefaultKeyParser
+# app/main.py
+from modelmirror.mirror import Mirror
+from .config import AppConfig
 
-# Default parser handles: "id" and "id:instance"
-default_parser = DefaultKeyParser()
+# Load configuration
+mirror = Mirror('app')
+config = mirror.reflect('config.json', AppConfig)
 
-# You can create custom parsers for different formats
-class CustomKeyParser(KeyParser):
-    def _parse(self, reference: str):
-        # Your custom parsing logic
-        pass
-
-# Use custom parser
-mirror = Mirror('myapp', parser=CustomKeyParser())
+# Use your configured services
+print(config.user_service.get_user(123))
+# Output: User 123 from Connected to myapp at localhost:5432 (cache: True)
 ```
 
-**Built-in Parser Features:**
-- **Simple format**: `"service"` → creates new instance
-- **Singleton format**: `"service:name"` → creates/reuses singleton
-- **Validation**: Ensures reference strings are valid
-- **Extensible**: Easy to add new reference formats
+## Runnable Examples
 
-### Reference Resolution Process
-
-ModelMirror processes references in a specific order:
-
-1. **Parse**: `DefaultKeyParser` converts `"database:main_db"` to `ParsedReference(id="database", instance="main_db")`
-2. **Lookup**: Find the class registered with ID "database"
-3. **Dependency Analysis**: Scan for `$singleton_name` references in parameters
-4. **Topological Sort**: Order instances to resolve dependencies first
-5. **Instantiate**: Create objects with resolved dependencies
-6. **Singleton Management**: Store named instances for reuse
-
-### Pydantic Schema for Type Safety
+### Example 1: Basic Service Configuration
 
 ```python
+# Complete runnable example
+from modelmirror.mirror import Mirror
+from modelmirror.class_provider.class_register import ClassRegister
+from modelmirror.class_provider.class_reference import ClassReference
 from pydantic import BaseModel, ConfigDict
+import json
 
-class ServiceConfig(BaseModel):
+# 1. Define your service
+class EmailService:
+    def __init__(self, smtp_host: str, port: int, username: str):
+        self.smtp_host = smtp_host
+        self.port = port
+        self.username = username
+
+    def send_email(self, to: str, subject: str):
+        return f"Sending '{subject}' to {to} via {self.smtp_host}:{self.port}"
+
+# 2. Register the service
+class EmailServiceRegister(ClassRegister):
+    reference = ClassReference(id="email_service", cls=EmailService)
+
+# 3. Create schema
+class EmailConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    email_service: EmailService
 
-    database: DatabaseService
-    user_service: UserService
-    admin_service: AdminService
+# 4. Create configuration
+config_data = {
+    "email_service": {
+        "$mirror": "email_service",
+        "smtp_host": "smtp.gmail.com",
+        "port": 587,
+        "username": "myapp@gmail.com"
+    }
+}
 
-config = mirror.reflect('config.json', ServiceConfig)
-# Full IDE support and validation!
+# Save config to file
+with open('email_config.json', 'w') as f:
+    json.dump(config_data, f, indent=2)
+
+# 5. Load and use
+mirror = Mirror('__main__')  # Use current module
+config = mirror.reflect('email_config.json', EmailConfig)
+print(config.email_service.send_email("user@example.com", "Welcome!"))
 ```
 
-## Tutorial 4: Working with Collections
+### Example 2: Dependency Injection with Singletons
 
-ModelMirror handles lists and dictionaries seamlessly.
+```python
+from modelmirror.mirror import Mirror
+from modelmirror.class_provider.class_register import ClassRegister
+from modelmirror.class_provider.class_reference import ClassReference
+from pydantic import BaseModel, ConfigDict
+import json
 
-### Lists of Services
+# Services with dependencies
+class Logger:
+    def __init__(self, level: str, output: str):
+        self.level = level
+        self.output = output
 
-```json
-{
-    "primary_db": {
-        "$mirror": "database:primary",
-        "host": "primary.db.com",
-        "port": 5432
+    def log(self, message: str):
+        return f"[{self.level}] {message} -> {self.output}"
+
+class DatabaseService:
+    def __init__(self, host: str, logger: Logger):
+        self.host = host
+        self.logger = logger
+
+    def query(self, sql: str):
+        self.logger.log(f"Executing: {sql}")
+        return f"Results from {self.host}"
+
+class ApiService:
+    def __init__(self, name: str, database: DatabaseService, logger: Logger):
+        self.name = name
+        self.database = database
+        self.logger = logger
+
+    def handle_request(self, endpoint: str):
+        self.logger.log(f"Handling {endpoint}")
+        return self.database.query(f"SELECT * FROM {endpoint}")
+
+# Register services
+class LoggerRegister(ClassRegister):
+    reference = ClassReference(id="logger", cls=Logger)
+
+class DatabaseRegister(ClassRegister):
+    reference = ClassReference(id="database", cls=DatabaseService)
+
+class ApiRegister(ClassRegister):
+    reference = ClassReference(id="api", cls=ApiService)
+
+# Schema
+class AppConfig(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    logger: Logger
+    database: DatabaseService
+    api_service: ApiService
+
+# Configuration with shared logger singleton
+config_data = {
+    "logger": {
+        "$mirror": "logger:shared_logger",
+        "level": "INFO",
+        "output": "console"
     },
+    "database": {
+        "$mirror": "database",
+        "host": "db.example.com",
+        "logger": "$shared_logger"
+    },
+    "api_service": {
+        "$mirror": "api",
+        "name": "UserAPI",
+        "database": "$database",
+        "logger": "$shared_logger"
+    }
+}
+
+with open('app_config.json', 'w') as f:
+    json.dump(config_data, f, indent=2)
+
+mirror = Mirror('__main__')
+config = mirror.reflect('app_config.json', AppConfig)
+
+# Both services share the same logger instance
+print(config.api_service.handle_request("users"))
+print(f"Same logger instance: {config.database.logger is config.api_service.logger}")
+```
+
+### Example 3: Collections and Complex Structures
+
+```python
+from modelmirror.mirror import Mirror
+from modelmirror.class_provider.class_register import ClassRegister
+from modelmirror.class_provider.class_reference import ClassReference
+from pydantic import BaseModel, ConfigDict
+from typing import List, Dict
+import json
+
+# Microservice classes
+class ServiceConfig:
+    def __init__(self, name: str, port: int, health_check_path: str):
+        self.name = name
+        self.port = port
+        self.health_check_path = health_check_path
+
+class LoadBalancer:
+    def __init__(self, services: List[ServiceConfig], algorithm: str):
+        self.services = services
+        self.algorithm = algorithm
+
+    def route_request(self):
+        return f"Routing via {self.algorithm} to {len(self.services)} services"
+
+# Registers
+class ServiceConfigRegister(ClassRegister):
+    reference = ClassReference(id="service_config", cls=ServiceConfig)
+
+class LoadBalancerRegister(ClassRegister):
+    reference = ClassReference(id="load_balancer", cls=LoadBalancer)
+
+# Schema
+class MicroservicesConfig(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    services: List[ServiceConfig]
+    load_balancer: LoadBalancer
+
+# Configuration with arrays
+config_data = {
     "services": [
         {
-            "$mirror": "service",
-            "name": "Service 1",
-            "database": "$primary"
+            "$mirror": "service_config",
+            "name": "auth-service",
+            "port": 8001,
+            "health_check_path": "/health"
         },
         {
-            "$mirror": "service",
-            "name": "Service 2",
-            "database": "$primary"
-        }
-    ]
-}
-```
-
-### Pydantic Schema for Lists
-
-```python
-from typing import List
-from pydantic import BaseModel, ConfigDict
-
-class MultiServiceConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    primary_db: DatabaseService
-    services: List[UserService]
-
-config = mirror.reflect('config.json', MultiServiceConfig)
-print(f"Loaded {len(config.services)} services")
-```
-
-### Dictionaries of Services
-
-```json
-{
-    "databases": {
-        "primary": {
-            "$mirror": "database:primary_db",
-            "host": "primary.db.com",
-            "port": 5432
+            "$mirror": "service_config",
+            "name": "user-service",
+            "port": 8002,
+            "health_check_path": "/health"
         },
-        "secondary": {
-            "$mirror": "database:secondary_db",
-            "host": "secondary.db.com",
-            "port": 5432
+        {
+            "$mirror": "service_config",
+            "name": "order-service",
+            "port": 8003,
+            "health_check_path": "/status"
         }
-    },
+    ],
     "load_balancer": {
         "$mirror": "load_balancer",
-        "primary_db": "$primary_db",
-        "secondary_db": "$secondary_db"
+        "services": "$services",
+        "algorithm": "round_robin"
     }
 }
+
+with open('microservices_config.json', 'w') as f:
+    json.dump(config_data, f, indent=2)
+
+mirror = Mirror('__main__')
+config = mirror.reflect('microservices_config.json', MicroservicesConfig)
+
+print(f"Configured {len(config.services)} services")
+print(config.load_balancer.route_request())
 ```
 
-### Pydantic Schema for Dictionaries
+### Example 4: Environment-Specific Configuration
 
 ```python
-from typing import Dict
+from modelmirror.mirror import Mirror
+from modelmirror.class_provider.class_register import ClassRegister
+from modelmirror.class_provider.class_reference import ClassReference
 from pydantic import BaseModel, ConfigDict
+import json
+import os
 
-class DatabaseClusterConfig(BaseModel):
+class DatabaseConfig:
+    def __init__(self, host: str, port: int, ssl_enabled: bool, pool_size: int):
+        self.host = host
+        self.port = port
+        self.ssl_enabled = ssl_enabled
+        self.pool_size = pool_size
+
+class CacheConfig:
+    def __init__(self, redis_url: str, ttl_seconds: int):
+        self.redis_url = redis_url
+        self.ttl_seconds = ttl_seconds
+
+class AppService:
+    def __init__(self, database: DatabaseConfig, cache: CacheConfig, debug_mode: bool):
+        self.database = database
+        self.cache = cache
+        self.debug_mode = debug_mode
+
+    def get_info(self):
+        return {
+            "database": f"{self.database.host}:{self.database.port}",
+            "cache_ttl": self.cache.ttl_seconds,
+            "debug": self.debug_mode
+        }
+
+# Registers
+class DatabaseConfigRegister(ClassRegister):
+    reference = ClassReference(id="database_config", cls=DatabaseConfig)
+
+class CacheConfigRegister(ClassRegister):
+    reference = ClassReference(id="cache_config", cls=CacheConfig)
+
+class AppServiceRegister(ClassRegister):
+    reference = ClassReference(id="app_service", cls=AppService)
+
+# Schema
+class EnvironmentConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
+    database: DatabaseConfig
+    cache: CacheConfig
+    app: AppService
 
-    databases: Dict[str, DatabaseService]
-    load_balancer: LoadBalancerService
-
-config = mirror.reflect('config.json', DatabaseClusterConfig)
-print(f"Primary DB: {config.databases['primary'].host}")
-```
-
-## Tutorial 5: Nested Structures and Complex Dependencies
-
-ModelMirror handles deeply nested configurations effortlessly.
-
-### Multi-Level Dependencies
-
-```json
-{
-    "cache": {
-        "$mirror": "cache:redis_cache",
-        "host": "redis.internal",
-        "port": 6379
-    },
+# Development configuration
+dev_config = {
     "database": {
-        "$mirror": "database:postgres_db",
-        "host": "postgres.internal",
-        "port": 5432
+        "$mirror": "database_config:main_db",
+        "host": "localhost",
+        "port": 5432,
+        "ssl_enabled": False,
+        "pool_size": 5
     },
-    "user_service": {
-        "$mirror": "user_service:user_svc",
-        "database": "$postgres_db",
-        "cache": "$redis_cache"
+    "cache": {
+        "$mirror": "cache_config:main_cache",
+        "redis_url": "redis://localhost:6379",
+        "ttl_seconds": 300
     },
-    "notification_service": {
-        "$mirror": "notification_service",
-        "user_service": "$user_svc",
-        "templates": {
-            "email": "Welcome {{name}}!",
-            "sms": "Hi {{name}}, welcome!"
-        }
+    "app": {
+        "$mirror": "app_service",
+        "database": "$main_db",
+        "cache": "$main_cache",
+        "debug_mode": True
     }
 }
-```
 
-### Pydantic Schema for Complex Apps
-
-```python
-from typing import Dict
-from pydantic import BaseModel, ConfigDict
-
-class AppConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    cache: CacheService
-    database: DatabaseService
-    user_service: UserService
-    notification_service: NotificationService
-
-config = mirror.reflect('config.json', AppConfig)
-# ModelMirror automatically resolves all dependencies in correct order!
-```
-
-### Nested Objects and Arrays
-
-```json
-{
-    "microservices": {
-        "auth": {
-            "$mirror": "auth_service:auth",
-            "jwt_secret": "secret123",
-            "token_expiry": 3600
-        },
-        "api_gateway": {
-            "$mirror": "gateway",
-            "auth_service": "$auth",
-            "routes": [
-                {
-                    "path": "/users",
-                    "service": "$user_svc",
-                    "methods": ["GET", "POST"]
-                },
-                {
-                    "path": "/notifications",
-                    "service": "$notification_svc",
-                    "methods": ["POST"]
-                }
-            ]
-        }
+# Production configuration
+prod_config = {
+    "database": {
+        "$mirror": "database_config:main_db",
+        "host": "prod-db.company.com",
+        "port": 5432,
+        "ssl_enabled": True,
+        "pool_size": 20
+    },
+    "cache": {
+        "$mirror": "cache_config:main_cache",
+        "redis_url": "redis://prod-cache.company.com:6379",
+        "ttl_seconds": 3600
+    },
+    "app": {
+        "$mirror": "app_service",
+        "database": "$main_db",
+        "cache": "$main_cache",
+        "debug_mode": False
     }
 }
+
+# Save environment-specific configs
+with open('config_dev.json', 'w') as f:
+    json.dump(dev_config, f, indent=2)
+
+with open('config_prod.json', 'w') as f:
+    json.dump(prod_config, f, indent=2)
+
+# Load based on environment
+env = os.getenv('ENV', 'dev')
+mirror = Mirror('__main__')
+config = mirror.reflect(f'config_{env}.json', EnvironmentConfig)
+
+print(f"Environment: {env}")
+print(f"App info: {config.app.get_info()}")
 ```
 
-## Tutorial 6: Validation and Error Handling
-
-Use Pydantic's powerful validation to catch configuration errors early.
-
-### Strict Validation
+### Example 5: Validation and Error Handling
 
 ```python
-from pydantic import BaseModel, Field, ConfigDict
+from modelmirror.mirror import Mirror
+from modelmirror.class_provider.class_register import ClassRegister
+from modelmirror.class_provider.class_reference import ClassReference
+from pydantic import BaseModel, ConfigDict, Field, validator
 from typing import List
+import json
 
-class DatabaseConfig(BaseModel):
+class DatabaseConnection:
+    def __init__(self, host: str, port: int, max_connections: int):
+        self.host = host
+        self.port = port
+        self.max_connections = max_connections
+
+class ApiServer:
+    def __init__(self, name: str, database: DatabaseConnection, allowed_origins: List[str]):
+        self.name = name
+        self.database = database
+        self.allowed_origins = allowed_origins
+
+# Registers
+class DatabaseConnectionRegister(ClassRegister):
+    reference = ClassReference(id="database", cls=DatabaseConnection)
+
+class ApiServerRegister(ClassRegister):
+    reference = ClassReference(id="api_server", cls=ApiServer)
+
+# Schema with validation
+class ValidatedConfig(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra='forbid')
 
-    host: str = Field(min_length=1, description="Database hostname")
-    port: int = Field(ge=1, le=65535, description="Database port")
-    max_connections: int = Field(ge=1, le=1000, default=10)
-    ssl_enabled: bool = Field(default=True)
+    database: DatabaseConnection
+    api_server: ApiServer
 
-class ServiceConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
+    # Custom validation
+    @validator('database')
+    def validate_database(cls, v):
+        if v.port < 1 or v.port > 65535:
+            raise ValueError('Database port must be between 1 and 65535')
+        if v.max_connections < 1:
+            raise ValueError('Max connections must be at least 1')
+        return v
 
-    name: str = Field(min_length=1, max_length=50)
-    timeout: int = Field(ge=1, le=300, default=30)
-    retries: int = Field(ge=0, le=10, default=3)
-
-class AppConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    database: DatabaseService
-    services: List[ServiceConfig]
-    debug_mode: bool = Field(default=False)
-
-# This will validate all constraints when loading
-config = mirror.reflect('config.json', AppConfig)
-```
-
-### Optional Fields and Defaults
-
-```python
-from typing import Optional
-from pydantic import BaseModel, ConfigDict
-
-class FlexibleConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    required_service: DatabaseService
-    optional_cache: Optional[CacheService] = None
-    debug_enabled: bool = False
-    max_retries: int = 3
-
-# JSON can omit optional fields
-config = mirror.reflect('minimal_config.json', FlexibleConfig)
-```
-
-## Advanced: Mirror Customization
-
-### Custom Reference Parsers
-
-Create custom parsers for specialized reference formats:
-
-```python
-from modelmirror.parser.key_parser import KeyParser, ParsedReference, FormatValidation
-
-class VersionedKeyParser(KeyParser):
-    """Supports format: service@v1.0:instance_name"""
-
-    def _validate(self, reference: str) -> FormatValidation:
-        if '@' not in reference:
-            return FormatValidation(False, "Missing version: use format 'id@version' or 'id@version:instance'")
-        return FormatValidation(True)
-
-    def _parse(self, reference: str) -> ParsedReference:
-        if ':' in reference:
-            id_version, instance = reference.split(':', 1)
-        else:
-            id_version, instance = reference, None
-
-        id_part, version = id_version.split('@', 1)
-        # You could use version for class selection logic
-        return ParsedReference(id=id_part, instance=instance)
-
-# Use your custom parser
-mirror = Mirror('myapp', parser=VersionedKeyParser())
-```
-
-### Custom Placeholders
-
-Change the placeholder field from `$mirror` to anything you prefer:
-
-```python
-# Use $ref instead of $mirror
-mirror = Mirror('myapp', placeholder='$ref')
-
-# Use $create for a more descriptive name
-mirror = Mirror('myapp', placeholder='$create')
-
-# Use $service for domain-specific naming
-mirror = Mirror('myapp', placeholder='$service')
-```
-
-**JSON with custom placeholder:**
-```json
-{
-    "my_service": {
-        "$ref": "service:shared",
-        "name": "Custom Placeholder Example"
-    }
-}
-```
-
-### Combining Custom Parser and Placeholder
-
-```python
-class AtSymbolParser(KeyParser):
-    """Uses @ for instances: service@instance"""
-
-    def _validate(self, reference: str) -> FormatValidation:
-        return FormatValidation(True)
-
-    def _parse(self, reference: str) -> ParsedReference:
-        if '@' in reference:
-            id_part, instance = reference.split('@', 1)
-            return ParsedReference(id=id_part, instance=instance)
-        return ParsedReference(id=reference, instance=None)
-
-# Combine custom parser with custom placeholder
-mirror = Mirror(
-    'myapp',
-    parser=AtSymbolParser(),
-    placeholder='$build'
-)
-```
-
-**JSON with both customizations:**
-```json
-{
+# Valid configuration
+valid_config = {
     "database": {
-        "$build": "database@shared_db",
+        "$mirror": "database:main_db",
         "host": "localhost",
-        "port": 5432
+        "port": 5432,
+        "max_connections": 10
     },
-    "service": {
-        "$build": "service",
-        "database": "$shared_db"
+    "api_server": {
+        "$mirror": "api_server",
+        "name": "MyAPI",
+        "database": "$main_db",
+        "allowed_origins": ["http://localhost:3000", "https://myapp.com"]
     }
 }
+
+with open('valid_config.json', 'w') as f:
+    json.dump(valid_config, f, indent=2)
+
+mirror = Mirror('__main__')
+
+try:
+    config = mirror.reflect('valid_config.json', ValidatedConfig)
+    print("✅ Configuration loaded successfully!")
+    print(f"API: {config.api_server.name}")
+    print(f"Database: {config.database.host}:{config.database.port}")
+except Exception as e:
+    print(f"❌ Configuration error: {e}")
+
+# Invalid configuration (will fail validation)
+invalid_config = {
+    "database": {
+        "$mirror": "database:main_db",
+        "host": "localhost",
+        "port": 99999,  # Invalid port
+        "max_connections": 10
+    },
+    "api_server": {
+        "$mirror": "api_server",
+        "name": "MyAPI",
+        "database": "$main_db",
+        "allowed_origins": ["http://localhost:3000"]
+    }
+}
+
+with open('invalid_config.json', 'w') as f:
+    json.dump(invalid_config, f, indent=2)
+
+try:
+    config = mirror.reflect('invalid_config.json', ValidatedConfig)
+    print("Configuration loaded")
+except Exception as e:
+    print(f"❌ Expected validation error: {e}")
 ```
 
-### Mirror Constructor Options
+## Technical Details
 
-```python
-mirror = Mirror(
-    package_name='myapp',           # Package to scan for registers
-    parser=DefaultKeyParser(), # Reference parser (default: DefaultKeyParser)
-    placeholder='$mirror'           # JSON field name (default: '$mirror')
-)
-```
+### Mirror Singleton Behavior
 
-## Mirror Singleton Behavior and Caching
-
-### Mirror Instance Management
-
-Mirror instances are **singletons** - creating multiple Mirror instances with the same parameters returns the exact same object:
+Mirror instances are singletons based on their configuration parameters:
 
 ```python
 # These are the same instance
@@ -561,8 +543,6 @@ assert mirror1 is mirror2  # True
 mirror3 = Mirror('myapp', placeholder='$ref')
 assert mirror1 is not mirror3  # True
 ```
-
-**Singleton Key**: `package_name:parser_type:placeholder`
 
 ### Automatic Caching
 
@@ -583,65 +563,7 @@ config3 = mirror.reflect('config.json', AppConfig, cached=False)
 assert config1 is not config3  # True - different object
 ```
 
-### Cache Behavior
-
-- **Global Cache**: Shared across all Mirror singleton instances
-- **Cache Keys**: `config_path:model_name` for typed reflections, `config_path:raw` for raw reflections
-- **Automatic**: Enabled by default for performance
-- **Optional**: Use `cached=False` to bypass cache
-
-```python
-# These share the same cache
-mirror1 = Mirror('myapp')
-mirror2 = Mirror('myapp')  # Same singleton
-
-config1 = mirror1.reflect('config.json', AppConfig)
-config2 = mirror2.reflect('config.json', AppConfig)
-assert config1 is config2  # True - shared cache
-```
-
-### Performance Benefits
-
-- **Instant Returns**: Cached reflections return immediately
-- **Memory Efficient**: Reuses objects instead of recreating
-- **Singleton Sharing**: Same instances across your application
-- **Configurable**: Use `cached=False` when you need fresh instances
-
-## Pro Tips
-
-### 1. Use Meaningful Singleton Names
-```json
-{
-    "$mirror": "database:user_db"     // Good: descriptive
-    "$mirror": "cache:cache_1"       // Good: clear purpose
-    "$mirror": "service:x"           // Bad: unclear
-}
-```
-
-### 2. Reference Format Best Practices
-```json
-{
-    // Simple instance - no reuse needed
-    "logger": {
-        "$mirror": "logger",
-        "level": "INFO"
-    },
-
-    // Singleton - will be reused
-    "database": {
-        "$mirror": "database:main_db",
-        "host": "localhost"
-    },
-
-    // Reference the singleton
-    "user_service": {
-        "$mirror": "user_service",
-        "database": "$main_db"  // Inject the singleton
-    }
-}
-```
-
-### 3. Understanding Reference Resolution Order
+### Reference Resolution
 
 ModelMirror automatically resolves dependencies using topological sorting:
 
@@ -649,50 +571,90 @@ ModelMirror automatically resolves dependencies using topological sorting:
 {
     "user_service": {
         "$mirror": "user_service",
-        "database": "$main_db",     // Depends on main_db
-        "cache": "$redis"           // Depends on redis
+        "database": "$main_db",
+        "cache": "$redis"
     },
     "database": {
-        "$mirror": "database:main_db"  // Created first
+        "$mirror": "database:main_db"
     },
     "cache": {
-        "$mirror": "cache:redis"       // Created second
+        "$mirror": "cache:redis"
     }
-    // user_service created last (after dependencies)
 }
 ```
 
 **Resolution order**: `database` → `cache` → `user_service`
 
-### 4. Organize Large Configs
+### Singleton References
+
+Use `:instance_name` to create reusable singletons:
+
+- `"service:name"` creates a singleton named "name"
+- `"$name"` references inject the singleton instance
+- All references to `"$name"` get the exact same object
+
+## Advanced Configuration
+
+### Custom Reference Parsers
+
+Create custom parsers for specialized reference formats:
+
 ```python
-# Split large configs into logical sections
-class DatabaseConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    primary: DatabaseService
-    replica: DatabaseService
+from modelmirror.parser.key_parser import KeyParser, ParsedKey, FormatValidation
 
-class ServiceConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    user_service: UserService
-    auth_service: AuthService
+class VersionedKeyParser(KeyParser):
+    """Supports format: service@v1.0:instance_name"""
 
-class AppConfig(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-    databases: DatabaseConfig
-    services: ServiceConfig
+    def __init__(self, placeholder: str = "$mirror"):
+        super().__init__(placeholder)
+
+    def _validate(self, reference: str) -> FormatValidation:
+        if '@' not in reference:
+            return FormatValidation(False, "Missing version: use format 'id@version' or 'id@version:instance'")
+        return FormatValidation(True)
+
+    def _parse(self, reference: str) -> ParsedKey:
+        if ':' in reference:
+            id_version, instance = reference.split(':', 1)
+        else:
+            id_version, instance = reference, None
+
+        id_part, version = id_version.split('@', 1)
+        return ParsedKey(id=id_part, instance=instance)
+
+# Use custom parser
+custom_parser = VersionedKeyParser()
+mirror = Mirror('myapp', parser=custom_parser)
 ```
 
-### 5. Environment-Specific Configs
+### Custom Placeholders
+
+Change the placeholder field from `$mirror` to anything you prefer:
+
 ```python
-# Load different configs per environment
-env = os.getenv('ENV', 'dev')
-config = mirror.reflect(f'config_{env}.json', AppConfig)
+from modelmirror.parser.default_key_parser import DefaultKeyParser
+
+# Use $ref instead of $mirror
+custom_parser = DefaultKeyParser(placeholder='$ref')
+mirror = Mirror('myapp', parser=custom_parser)
 ```
 
-### 6. Retrieve Instances Flexibly
+**JSON with custom placeholder:**
+```json
+{
+    "my_service": {
+        "$ref": "service:shared",
+        "name": "Custom Placeholder Example"
+    }
+}
+```
+
+### Flexible Instance Retrieval
+
 ```python
 # Multiple ways to get your instances
+instances = mirror.reflect_raw('config.json')
+
 user_service = instances.get(UserService)                    # First instance of type
 specific_db = instances.get(DatabaseService, '$primary_db') # By singleton name
 all_services = instances.get(list[UserService])             # All instances as list
