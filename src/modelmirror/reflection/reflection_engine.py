@@ -12,6 +12,7 @@ from modelmirror.class_provider.class_reference import ClassReference
 from modelmirror.instance.instance_properties import InstanceProperties
 from modelmirror.instance.reference_service import ReferenceService
 from modelmirror.parser.key_parser import KeyParser
+from modelmirror.parser.value_parser import ValueParser
 from modelmirror.reflections import Reflections
 from modelmirror.utils import json_utils
 
@@ -21,11 +22,12 @@ T = TypeVar("T", bound=BaseModel)
 class ReflectionEngine:
     """Core engine for processing configuration reflections."""
 
-    def __init__(self, registered_classes: list[ClassReference], parser: KeyParser):
+    def __init__(self, registered_classes: list[ClassReference], key_parser: KeyParser, value_parser: ValueParser):
         self.__registered_classes = registered_classes
-        self.__parser = parser
+        self.__key_parser = key_parser
         self.__instance_properties: dict[str, InstanceProperties] = {}
         self.__singleton_path: dict[str, str] = {}
+        self.__value_parser = value_parser
         self.__reset_state()
 
     def reflect_typed(self, config_path: str, model: type[T]) -> T:
@@ -62,13 +64,13 @@ class ReflectionEngine:
     def __create_instance_map(self, node_context: json_utils.NodeContext):
         node = node_context.node
 
-        if isinstance(node, dict) and self.__parser.placeholder in node:
+        if isinstance(node, dict) and self.__key_parser.placeholder in node:
             node_id = node_context.path_str
-            raw_reference = node.pop(self.__parser.placeholder)
+            raw_reference = node.pop(self.__key_parser.placeholder)
             params: dict[str, Any] = {name: prop for name, prop in node.items()}
             refs = self.__reference_service.find(list(params.values()))
 
-            reference = self.__parser.parse(raw_reference)
+            reference = self.__key_parser.parse(raw_reference)
             instance = reference.instance
             class_reference = self.__get_class_reference(reference.id)
 

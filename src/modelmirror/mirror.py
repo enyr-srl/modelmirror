@@ -5,7 +5,9 @@ from pydantic import BaseModel
 from modelmirror.cache.mirror_cache import MirrorCache
 from modelmirror.class_provider.class_scanner import ClassScanner
 from modelmirror.parser.default_key_parser import DefaultKeyParser
+from modelmirror.parser.default_value_parser import DefaultValueParser
 from modelmirror.parser.key_parser import KeyParser
+from modelmirror.parser.value_parser import ValueParser
 from modelmirror.reflection.reflection_engine import ReflectionEngine
 from modelmirror.reflections import Reflections
 from modelmirror.singleton.singleton_manager import MirrorSingletons
@@ -14,18 +16,26 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class Mirror:
-    def __new__(cls, package_name: str = "app", parser: KeyParser = DefaultKeyParser()) -> "Mirror":
-        return MirrorSingletons.get_or_create_instance(cls, package_name, parser)
+    def __new__(
+        cls,
+        package_name: str = "app",
+        key_parser: KeyParser = DefaultKeyParser(),
+        value_parser: ValueParser = DefaultValueParser(),
+    ) -> "Mirror":
+        return MirrorSingletons.get_or_create_instance(cls, package_name, key_parser)
 
-    def __init__(self, package_name: str = "app", parser: KeyParser = DefaultKeyParser()):
+    def __init__(
+        self,
+        package_name: str = "app",
+        key_parser: KeyParser = DefaultKeyParser(),
+        value_parser: ValueParser = DefaultValueParser(),
+    ):
         if hasattr(self, "_initialized"):
             return
-
-        parser = parser or DefaultKeyParser()
         scanner = ClassScanner(package_name)
         registered_classes = scanner.scan()
 
-        self.__engine = ReflectionEngine(registered_classes, parser)
+        self.__engine = ReflectionEngine(registered_classes, key_parser, value_parser)
         self._initialized = True
 
     def reflect(self, config_path: str, model: type[T], *, cached: bool = True) -> T:
