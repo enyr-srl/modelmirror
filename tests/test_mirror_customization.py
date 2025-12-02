@@ -74,7 +74,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_custom_placeholder(self):
         """Test Mirror with custom placeholder."""
-        mirror = Mirror("tests.fixtures", key_parser=DefaultCodeLinkParser("$ref"))
+        mirror = Mirror("tests.fixtures", code_link_parser=DefaultCodeLinkParser("$ref"))
 
         config_data = {"service": {"$ref": "simple_service", "name": "custom_placeholder"}}
 
@@ -86,7 +86,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_custom_parser_with_at_symbol(self):
         """Test Mirror with custom parser using @ for instances."""
-        mirror = Mirror("tests.fixtures", key_parser=CustomCodeLinkParser(placeholder="$mirror"))
+        mirror = Mirror("tests.fixtures", code_link_parser=CustomCodeLinkParser(placeholder="$mirror"))
 
         config_data = {
             "database": {
@@ -113,7 +113,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_versioned_parser(self):
         """Test Mirror with versioned parser."""
-        mirror = Mirror("tests.fixtures", key_parser=VersionedCodeLinkParser(placeholder="$mirror"))
+        mirror = Mirror("tests.fixtures", code_link_parser=VersionedCodeLinkParser(placeholder="$mirror"))
 
         config_data = {"service": {"$mirror": "simple_service:v1.0", "name": "versioned_service"}}
 
@@ -125,7 +125,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_versioned_parser_with_instance(self):
         """Test versioned parser with instance."""
-        mirror = Mirror("tests.fixtures", key_parser=VersionedCodeLinkParser(placeholder="$mirror"))
+        mirror = Mirror("tests.fixtures", code_link_parser=VersionedCodeLinkParser(placeholder="$mirror"))
 
         config_data = {
             "database": {
@@ -152,7 +152,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_custom_placeholder_and_parser_together(self):
         """Test Mirror with both custom placeholder and parser."""
-        mirror = Mirror("tests.fixtures", key_parser=CustomCodeLinkParser(placeholder="$create"))
+        mirror = Mirror("tests.fixtures", code_link_parser=CustomCodeLinkParser(placeholder="$create"))
 
         config_data = {
             "service": {"$create": "simple_service@my_instance", "name": "combined_test"},
@@ -173,7 +173,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_parser_validation_error(self):
         """Test that parser validation errors are properly raised."""
-        mirror = Mirror("tests.fixtures", key_parser=VersionedCodeLinkParser(placeholder="$mirror"))
+        mirror = Mirror("tests.fixtures", code_link_parser=VersionedCodeLinkParser(placeholder="$mirror"))
 
         config_data = {"service": {"$mirror": "simple_service", "name": "invalid"}}  # Missing version
 
@@ -187,7 +187,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_raw_reflection_with_custom_features(self):
         """Test raw reflection works with custom parser and placeholder."""
-        mirror = Mirror("tests.fixtures", key_parser=CustomCodeLinkParser(placeholder="$build"))
+        mirror = Mirror("tests.fixtures", code_link_parser=CustomCodeLinkParser(placeholder="$build"))
 
         config_data = {"service": {"$build": "simple_service@shared", "name": "raw_test"}}
 

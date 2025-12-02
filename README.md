@@ -600,7 +600,7 @@ Use `:instance_name` to create reusable singletons:
 Create custom parsers for specialized reference formats:
 
 ```python
-from modelmirror.parser.key_parser import CodeLinkParser, ParsedKey, FormatValidation
+from modelmirror.parser.code_link_parser import CodeLinkParser, ParsedKey, FormatValidation
 
 class VersionedCodeLinkParser(CodeLinkParser):
     """Supports format: service@v1.0:instance_name"""
@@ -632,7 +632,7 @@ mirror = Mirror('myapp', parser=custom_parser)
 Change the placeholder field from `$mirror` to anything you prefer:
 
 ```python
-from modelmirror.parser.default_key_parser import DefaultCodeLinkParser
+from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
 
 # Use $ref instead of $mirror
 custom_parser = DefaultCodeLinkParser(placeholder='$ref')

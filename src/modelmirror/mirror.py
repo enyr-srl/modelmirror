@@ -19,15 +19,15 @@ class Mirror:
     def __new__(
         cls,
         package_name: str = "app",
-        key_parser: CodeLinkParser = DefaultCodeLinkParser(),
+        code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
         value_parser: ValueParser = DefaultValueParser(),
     ) -> "Mirror":
-        return MirrorSingletons.get_or_create_instance(cls, package_name, key_parser)
+        return MirrorSingletons.get_or_create_instance(cls, package_name, code_link_parser)
 
     def __init__(
         self,
         package_name: str = "app",
-        key_parser: CodeLinkParser = DefaultCodeLinkParser(),
+        code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
         value_parser: ValueParser = DefaultValueParser(),
     ):
         if hasattr(self, "_initialized"):
@@ -35,7 +35,7 @@ class Mirror:
         scanner = ClassScanner(package_name)
         registered_classes = scanner.scan()
 
-        self.__engine = ReflectionEngine(registered_classes, key_parser, value_parser)
+        self.__engine = ReflectionEngine(registered_classes, code_link_parser, value_parser)
         self._initialized = True
 
     def reflect(self, config_path: str, model: type[T], *, cached: bool = True) -> T:
