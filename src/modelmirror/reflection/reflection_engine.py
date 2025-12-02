@@ -69,7 +69,7 @@ class ReflectionEngine:
 
         if not isinstance(node, dict):
             return node
-        if not self.__code_link_parser.has_code_link(node):
+        if not self.__code_link_parser._is_code_link_node(node):
             return node
         reference = self.__code_link_parser.parse(node)
         if not reference:

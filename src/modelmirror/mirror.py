@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from modelmirror.cache.mirror_cache import MirrorCache
 from modelmirror.class_provider.class_scanner import ClassScanner
 from modelmirror.parser.code_link_parser import CodeLinkParser
-from modelmirror.parser.default_key_parser import DefaultCodeLinkParser
+from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
 from modelmirror.parser.default_value_parser import DefaultValueParser
 from modelmirror.parser.value_parser import ValueParser
 from modelmirror.reflection.reflection_engine import ReflectionEngine

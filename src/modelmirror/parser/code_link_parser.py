@@ -1,6 +1,6 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, final
 
 
 @dataclass
@@ -11,23 +11,22 @@ class ParsedKey:
 
 
 class CodeLinkParser(ABC):
-    __name__: str
+    @abstractmethod
+    def _is_code_link_node(self, node: dict[str, Any]) -> bool:
+        raise NotImplementedError
 
-    def __init__(self, placeholder: str):
-        self.placeholder = placeholder
-        self.__name__ = f"{self.__class__.__name__}:{placeholder}"
+    @abstractmethod
+    def _is_valid(self, node: dict[str, Any]) -> bool:
+        raise NotImplementedError
 
-    def has_code_link(self, node: dict[str, Any]) -> bool:
-        if self.placeholder in node:
-            if isinstance(node[self.placeholder], str):
-                return True
-            raise ValueError(f"Value of '{self.placeholder}' must be a string")
-        return False
+    @abstractmethod
+    def _create_code_link(self, node: dict[str, Any]) -> ParsedKey:
+        raise NotImplementedError
 
-    def parse(self, node: dict[str, Any]) -> ParsedKey:
-        raw_reference: str = node.pop(self.placeholder)
-        params: dict[str, Any] = {name: prop for name, prop in node.items()}
-        if ":" in raw_reference:
-            id, instance = raw_reference.split(":", 1)
-            return ParsedKey(id=id, instance=f"${instance}", params=params)
-        return ParsedKey(id=raw_reference, instance=None, params=params)
+    @final
+    def parse(self, node: dict[str, Any]) -> ParsedKey | None:
+        if not self._is_code_link_node(node):
+            return None
+        if not self._is_valid(node):
+            return None
+        return self._create_code_link(node)

@@ -9,16 +9,16 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from modelmirror.mirror import Mirror
-from modelmirror.parser.code_link_parser import CodeLinkParser, ParsedKey
-from modelmirror.parser.default_key_parser import DefaultCodeLinkParser
+from modelmirror.parser.code_link_parser import ParsedKey
+from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
 from tests.fixtures.test_classes import DatabaseService, SimpleService, UserService
 
 
-class CustomCodeLinkParser(CodeLinkParser):
+class CustomCodeLinkParser(DefaultCodeLinkParser):
     """Custom parser that uses @ symbol for instances: service@instance"""
 
-    def parse(self, node: dict[str, Any]) -> ParsedKey:
-        raw_reference: str = node.pop(self.placeholder)
+    def _create_code_link(self, node: dict[str, Any]) -> ParsedKey:
+        raw_reference: str = node.pop(self._placeholder)
         params: dict[str, Any] = {name: prop for name, prop in node.items()}
         if "@" in raw_reference:
             id, instance = raw_reference.split("@", 1)
@@ -26,14 +26,19 @@ class CustomCodeLinkParser(CodeLinkParser):
         return ParsedKey(id=raw_reference, instance=None, params=params)
 
 
-class VersionedCodeLinkParser(CodeLinkParser):
+class VersionedCodeLinkParser(DefaultCodeLinkParser):
     """Parser that requires version: service:v1.0@instance"""
 
-    def parse(self, node: dict[str, Any]) -> ParsedKey:
-        raw_reference: str = node.pop(self.placeholder)
+    def _is_valid(self, node: dict[str, Any]) -> bool:
+        if isinstance(node[self._placeholder], str):
+            if ":" not in node[self._placeholder]:
+                raise ValueError("Version required: use 'id:version' or 'id:version@instance'")
+            return True
+        raise ValueError(f"Value of '{self._placeholder}' must be a string")
+
+    def _create_code_link(self, node: dict[str, Any]) -> ParsedKey:
+        raw_reference: str = node.pop(self._placeholder)
         params: dict[str, Any] = {name: prop for name, prop in node.items()}
-        if ":" not in raw_reference:
-            raise ValueError("Version required: use 'id:version' or 'id:version@instance'")
         if "@" in raw_reference:
             id_version, instance = raw_reference.split("@", 1)
         else:
@@ -41,7 +46,7 @@ class VersionedCodeLinkParser(CodeLinkParser):
 
         id_part, version = id_version.split(":", 1)
         # For testing, we ignore version and just use id
-        return ParsedKey(id=id_part, instance=f"${instance}", params=params)
+        return ParsedKey(id=id_part, instance=f"${instance}" if instance else None, params=params)
 
 
 class TestConfig(BaseModel):
@@ -69,7 +74,7 @@ class TestMirrorCustomization(unittest.TestCase):
 
     def test_custom_placeholder(self):
         """Test Mirror with custom placeholder."""
-        mirror = Mirror("tests.fixtures", DefaultCodeLinkParser("$ref"))
+        mirror = Mirror("tests.fixtures", key_parser=DefaultCodeLinkParser("$ref"))
 
         config_data = {"service": {"$ref": "simple_service", "name": "custom_placeholder"}}
 

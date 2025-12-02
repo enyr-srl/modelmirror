@@ -7,7 +7,7 @@ import unittest
 from pydantic import BaseModel, ConfigDict
 
 from modelmirror.mirror import Mirror
-from modelmirror.parser.default_key_parser import DefaultCodeLinkParser
+from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
 from tests.fixtures.test_classes import DatabaseService, SimpleService
 
 
