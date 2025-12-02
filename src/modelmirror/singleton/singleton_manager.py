@@ -20,5 +20,4 @@ class MirrorSingletons:
     @classmethod
     def __create_instance_key(cls, package_name: str, parser: CodeLinkParser) -> str:
         """Create unique key for Mirror instance."""
-        parser_id = getattr(parser, "__name__", type(parser).__name__)
-        return f"{package_name}:{parser_id}"
+        return f"{package_name}:{id(parser)}"

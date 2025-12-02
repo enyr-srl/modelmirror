@@ -71,23 +71,23 @@ class ReflectionEngine:
             return node
         if not self.__code_link_parser._is_code_link_node(node):
             return node
-        reference = self.__code_link_parser.parse(node)
-        if not reference:
+        code_link = self.__code_link_parser.parse(node)
+        if not code_link:
             return node
-        class_reference = self.__get_class_reference(reference.id)
+        class_reference = self.__get_class_reference(code_link.id)
 
         node_id = node_context.path_str
-        refs = self.__reference_service.find(list(reference.params.values()))
+        refs = self.__reference_service.find(list(code_link.params.values()))
 
         self.__instance_properties[node_id] = InstanceProperties(
             node_id,
             node_context.parent_type,
             class_reference,
             refs,
-            reference.params,
+            code_link.params,
         )
 
-        instance = reference.instance
+        instance = code_link.instance
         if not instance:
             return node
         if instance in self.__singleton_path:

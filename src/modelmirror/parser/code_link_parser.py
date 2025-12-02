@@ -1,13 +1,7 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
 from typing import Any, final
 
-
-@dataclass
-class ParsedKey:
-    id: str
-    params: dict[str, Any]
-    instance: str | None = None
+from modelmirror.parser.code_link import CodeLink
 
 
 class CodeLinkParser(ABC):
@@ -20,11 +14,11 @@ class CodeLinkParser(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _create_code_link(self, node: dict[str, Any]) -> ParsedKey:
+    def _create_code_link(self, node: dict[str, Any]) -> CodeLink:
         raise NotImplementedError
 
     @final
-    def parse(self, node: dict[str, Any]) -> ParsedKey | None:
+    def parse(self, node: dict[str, Any]) -> CodeLink | None:
         if not self._is_code_link_node(node):
             return None
         if not self._is_valid(node):

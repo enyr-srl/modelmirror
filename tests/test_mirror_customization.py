@@ -9,7 +9,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from modelmirror.mirror import Mirror
-from modelmirror.parser.code_link_parser import ParsedKey
+from modelmirror.parser.code_link_parser import CodeLink
 from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
 from tests.fixtures.test_classes import DatabaseService, SimpleService, UserService
 
@@ -17,13 +17,13 @@ from tests.fixtures.test_classes import DatabaseService, SimpleService, UserServ
 class CustomCodeLinkParser(DefaultCodeLinkParser):
     """Custom parser that uses @ symbol for instances: service@instance"""
 
-    def _create_code_link(self, node: dict[str, Any]) -> ParsedKey:
+    def _create_code_link(self, node: dict[str, Any]) -> CodeLink:
         raw_reference: str = node.pop(self._placeholder)
         params: dict[str, Any] = {name: prop for name, prop in node.items()}
         if "@" in raw_reference:
             id, instance = raw_reference.split("@", 1)
-            return ParsedKey(id=id, instance=f"${instance}", params=params)
-        return ParsedKey(id=raw_reference, instance=None, params=params)
+            return CodeLink(id=id, instance=f"${instance}", params=params)
+        return CodeLink(id=raw_reference, instance=None, params=params)
 
 
 class VersionedCodeLinkParser(DefaultCodeLinkParser):
@@ -36,7 +36,7 @@ class VersionedCodeLinkParser(DefaultCodeLinkParser):
             return True
         raise ValueError(f"Value of '{self._placeholder}' must be a string")
 
-    def _create_code_link(self, node: dict[str, Any]) -> ParsedKey:
+    def _create_code_link(self, node: dict[str, Any]) -> CodeLink:
         raw_reference: str = node.pop(self._placeholder)
         params: dict[str, Any] = {name: prop for name, prop in node.items()}
         if "@" in raw_reference:
@@ -46,7 +46,7 @@ class VersionedCodeLinkParser(DefaultCodeLinkParser):
 
         id_part, version = id_version.split(":", 1)
         # For testing, we ignore version and just use id
-        return ParsedKey(id=id_part, instance=f"${instance}" if instance else None, params=params)
+        return CodeLink(id=id_part, instance=f"${instance}" if instance else None, params=params)
 
 
 class TestConfig(BaseModel):
