@@ -1,0 +1,20 @@
+{
+    "service_factory": {
+        "$mirror": "service_factory",
+        "service_class": "$simple_service$",
+        "dependency_service": null
+    },
+    "database_type": "$database_service$",
+    "service_type": "$simple_service$",
+    "mixed_service": {
+        "$mirror": "service_with_type_ref",
+        "name": "MixedTestService",
+        "service_type": "$database_service$"
+    },
+    "actual_database": {
+        "$mirror": "database_service:real_db",
+        "host": "production.db.com",
+        "port": 5432,
+        "database_name": "prod_db"
+    }
+}
