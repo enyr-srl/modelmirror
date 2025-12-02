@@ -23,10 +23,10 @@ class ReflectionEngine:
     """Core engine for processing configuration reflections."""
 
     def __init__(
-        self, registered_classes: list[ClassReference], key_parser: CodeLinkParser, value_parser: ValueParser
+        self, registered_classes: list[ClassReference], code_link_parser: CodeLinkParser, value_parser: ValueParser
     ):
         self.__registered_classes = registered_classes
-        self.__key_parser = key_parser
+        self.__code_link_parser = code_link_parser
         self.__instance_properties: dict[str, InstanceProperties] = {}
         self.__singleton_path: dict[str, str] = {}
         self.__value_parser = value_parser
@@ -66,13 +66,13 @@ class ReflectionEngine:
     def __create_instance_map(self, node_context: json_utils.NodeContext):
         node = node_context.node
 
-        if isinstance(node, dict) and self.__key_parser.placeholder in node:
+        if isinstance(node, dict) and self.__code_link_parser.placeholder in node:
             node_id = node_context.path_str
-            raw_reference = node.pop(self.__key_parser.placeholder)
+            raw_reference = node.pop(self.__code_link_parser.placeholder)
             params: dict[str, Any] = {name: prop for name, prop in node.items()}
             refs = self.__reference_service.find(list(params.values()))
 
-            reference = self.__key_parser.parse(raw_reference)
+            reference = self.__code_link_parser.parse(raw_reference)
             instance = reference.instance
             class_reference = self.__get_class_reference(reference.id)
 
