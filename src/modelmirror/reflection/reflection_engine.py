@@ -55,7 +55,7 @@ class ReflectionEngine:
         reflection_config_file = self.__get_reflection_config_file(config_path)
         with open(reflection_config_file) as file:
             json_utils.json_load_with_context(file, self.__create_instance_map)
-            return Reflections(self.__resolve_instances(), self.__singleton_path)
+            return Reflections(self.__resolve_instances(), self.__singleton_path, self.__model_link_parser)
 
     def __reset_state(self):
         self.__reference_service = ReferenceService()
