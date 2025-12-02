@@ -14,12 +14,15 @@ class ReferenceService:
         instance_names: list[str],
         instance_properties: dict[str, InstanceProperties],
         singleton_path: dict[str, str],
+        model_link_parser: ModelLinkParser,
     ) -> dict[str, Any]:
         self.__instances = {}
         for instance_name in instance_names:
             properties = instance_properties.get(instance_name)
             if properties:
-                resolved_params = self.__resolve_params(properties, self.__instances, singleton_path)
+                resolved_params = self.__resolve_params(
+                    properties, self.__instances, singleton_path, model_link_parser
+                )
                 self.__instances.update({instance_name: properties.class_reference.cls(**resolved_params)})
         return self.__instances
 
@@ -49,11 +52,17 @@ class ReferenceService:
         return list(model_links)
 
     def __resolve_params(
-        self, properties: InstanceProperties, instances: dict[str, Any], singleton_path: dict[str, str]
+        self,
+        properties: InstanceProperties,
+        instances: dict[str, Any],
+        singleton_path: dict[str, str],
+        model_link_parser: ModelLinkParser,
     ) -> dict[str, Any]:
         def resolve_value(key: str, value: Any, node_id: str) -> Any:
             # "$something" -> instances["something"]
-            if isinstance(value, str) and value.startswith("$"):
+            model_link = model_link_parser.parse(value)
+            if model_link and model_link.type == "instance":
+                value = model_link.id
                 if value not in singleton_path:
                     raise KeyError(f"No instance found for '{value}'")
                 instance_path = singleton_path[value]

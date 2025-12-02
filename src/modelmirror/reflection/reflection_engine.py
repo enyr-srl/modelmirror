@@ -25,13 +25,16 @@ class ReflectionEngine:
     """Core engine for processing configuration reflections."""
 
     def __init__(
-        self, registered_classes: list[ClassReference], code_link_parser: CodeLinkParser, model_link: ModelLinkParser
+        self,
+        registered_classes: list[ClassReference],
+        code_link_parser: CodeLinkParser,
+        model_link_parser: ModelLinkParser,
     ):
         self.__registered_classes = registered_classes
         self.__code_link_parser = code_link_parser
         self.__instance_properties: dict[str, InstanceProperties] = {}
         self.__singleton_path: dict[str, str] = {}
-        self.__model_link = model_link
+        self.__model_link_parser = model_link_parser
         self.__reset_state()
 
     def reflect_typed(self, config_path: str, model: type[T]) -> T:
@@ -78,7 +81,7 @@ class ReflectionEngine:
         class_reference = self.__get_class_reference(code_link.id)
 
         node_id = node_context.path_str
-        model_links = self.__reference_service.find(list(code_link.params.values()), self.__model_link)
+        model_links = self.__reference_service.find(list(code_link.params.values()), self.__model_link_parser)
 
         self.__instance_properties[node_id] = InstanceProperties(
             node_id,
@@ -108,7 +111,9 @@ class ReflectionEngine:
         for instance, properties in self.__instance_properties.items():
             instance_refs[instance] = self.__model_links_to_paths(properties.model_links)
         instance_names = list(TopologicalSorter(instance_refs).static_order())
-        return self.__reference_service.resolve(instance_names, self.__instance_properties, self.__singleton_path)
+        return self.__reference_service.resolve(
+            instance_names, self.__instance_properties, self.__singleton_path, self.__model_link_parser
+        )
 
     def __model_links_to_paths(self, model_links: list[ModelLink]) -> list[str]:
         paths: list[str] = []
