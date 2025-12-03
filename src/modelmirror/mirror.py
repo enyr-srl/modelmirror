@@ -1,8 +1,7 @@
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from modelmirror.cache.mirror_cache import MirrorCache
 from modelmirror.class_provider.class_scanner import ClassScanner
 from modelmirror.parser.code_link_parser import CodeLinkParser
 from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
@@ -31,15 +30,17 @@ class Mirror:
         self,
         package_name: str = "app",
         code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
-        model_link: ModelLinkParser = DefaultModelLinkParser(),
+        model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
         check_circular_types: bool = True,
     ):
         if hasattr(self, "_initialized"):
             return
+
         scanner = ClassScanner(package_name)
         registered_classes = scanner.scan()
 
-        self.__engine = ReflectionEngine(registered_classes, code_link_parser, model_link, check_circular_types)
+        self.__engine = ReflectionEngine(registered_classes, code_link_parser, model_link_parser, check_circular_types)
+        self.__cache: dict[str, Any] = {}
         self._initialized = True
 
     def reflect(self, config_path: str, model: type[T], *, cached: bool = True) -> T:
@@ -47,14 +48,12 @@ class Mirror:
         if not cached:
             return self.__engine.reflect_typed(config_path, model)
 
-        cache_key = MirrorCache.create_cache_key(config_path, model.__name__)
-        cached_result = MirrorCache.get_cached(cache_key)
-
-        if cached_result is not None:
-            return cached_result
+        cache_key = f"{config_path}:{model.__name__}"
+        if cache_key in self.__cache:
+            return self.__cache[cache_key]
 
         result = self.__engine.reflect_typed(config_path, model)
-        MirrorCache.set_cached(cache_key, result)
+        self.__cache[cache_key] = result
         return result
 
     def reflect_raw(self, config_path: str, *, cached: bool = True) -> Reflections:
@@ -62,12 +61,10 @@ class Mirror:
         if not cached:
             return self.__engine.reflect_raw(config_path)
 
-        cache_key = MirrorCache.create_raw_cache_key(config_path)
-        cached_result = MirrorCache.get_cached(cache_key)
-
-        if cached_result is not None:
-            return cached_result
+        cache_key = f"{config_path}:raw"
+        if cache_key in self.__cache:
+            return self.__cache[cache_key]
 
         result = self.__engine.reflect_raw(config_path)
-        MirrorCache.set_cached(cache_key, result)
+        self.__cache[cache_key] = result
         return result

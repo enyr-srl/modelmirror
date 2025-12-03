@@ -123,24 +123,37 @@ class ReflectionEngine:
         )
 
     def __check_dependencies(self):
+        if not self.__check_circular_types:
+            return
         instance_refs: dict[str, list[str]] = {}
         for instance, properties in self.__instance_properties.items():
-            instance_refs[instance] = self.__model_links_to_paths(properties.model_links, True)
+            instance_class = self.__instance_properties[instance]
+            instance_refs[instance_class.class_reference.id] = self.__model_links_to_paths_check(
+                properties.model_links
+            )
         try:
-            TopologicalSorter(instance_refs).static_order()
+            list(TopologicalSorter(instance_refs).static_order())
         except Exception as e:
             raise Exception(f"Circular dependency detected: {e}")
 
-    def __model_links_to_paths(self, model_links: list[ModelLink], check_types: bool = False) -> list[str]:
+    def __model_links_to_paths_check(self, model_links: list[ModelLink]) -> list[str]:
         paths: list[str] = []
         for model_link in model_links:
             if model_link.type == "instance":
                 if model_link.id not in self.__singleton_path:
                     raise Exception(f"Id {model_link} has not a corresponding reference")
                 paths.append(self.__singleton_path[model_link.id])
-            if check_types:
-                if model_link.type == "type" and self.__check_circular_types:
-                    paths.append(model_link.id)
+            if model_link.type == "type" and self.__check_circular_types:
+                paths.append(model_link.id)
+        return paths
+
+    def __model_links_to_paths(self, model_links: list[ModelLink]) -> list[str]:
+        paths: list[str] = []
+        for model_link in model_links:
+            if model_link.type == "instance":
+                if model_link.id not in self.__singleton_path:
+                    raise Exception(f"Id {model_link} has not a corresponding reference")
+                paths.append(self.__singleton_path[model_link.id])
         return paths
 
     def __instantiate_model(self, instances: dict[str, Any]):

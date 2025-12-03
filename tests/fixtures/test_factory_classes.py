@@ -8,13 +8,16 @@ from typing import Optional, Type
 class ServiceFactory:
     """Factory that creates services based on type references."""
 
-    def __init__(self, service_class: Type, dependency_service: Optional[object] = None):
-        self.service_class = service_class
-        self.dependency_service = dependency_service
+    def __init__(self, name: str, creates_type: Type, related_factory: Optional[object] = None):
+        self.name = name
+        self.creates_type = creates_type
+        self.related_factory = related_factory
 
     def create_service(self, *args, **kwargs):
         """Create an instance of the service class."""
-        return self.service_class(*args, **kwargs)
+        if self.creates_type:
+            return self.creates_type(*args, **kwargs)
+        return None
 
 
 class DependentService:
