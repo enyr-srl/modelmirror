@@ -1,6 +1,6 @@
 from typing import Any, Mapping
 
-from modelmirror.class_provider.class_reference import ClassReference
+from modelmirror.class_provider.class_scanner import IsolatedClassReference
 from modelmirror.instance.instance_properties import InstanceProperties
 from modelmirror.parser.model_link import ModelLink
 from modelmirror.parser.model_link_parser import ModelLinkParser
@@ -16,7 +16,7 @@ class ReferenceService:
         instance_properties: dict[str, InstanceProperties],
         singleton_path: dict[str, str],
         model_link_parser: ModelLinkParser,
-        registered_classes: list[ClassReference],
+        registered_classes: list[IsolatedClassReference],
     ) -> dict[str, Any]:
         self.__instances = {}
         for instance_name in instance_names:
@@ -59,7 +59,7 @@ class ReferenceService:
         instances: dict[str, Any],
         singleton_path: dict[str, str],
         model_link_parser: ModelLinkParser,
-        registered_classes: list[ClassReference],
+        registered_classes: list[IsolatedClassReference],
     ) -> dict[str, Any]:
         def resolve_value(key: str, value: Any, node_id: str) -> Any:
             # "$something" -> instances["something"]
@@ -77,7 +77,7 @@ class ReferenceService:
                 if model_link.type == "type":
                     for registered_class in registered_classes:
                         if registered_class.id == model_link.id:
-                            return registered_class.cls
+                            return registered_class.original_cls
                     raise KeyError(f"Class '{model_link.id}' not found. Check classes registration")
 
             if f"{node_id}.{key}" in instances:

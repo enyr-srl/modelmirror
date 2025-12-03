@@ -6,10 +6,16 @@ import importlib
 import pkgutil
 from typing import Dict, Type
 
-from pydantic import validate_call
+from pydantic import BaseModel, validate_call
 
 from modelmirror.class_provider.class_reference import ClassReference
 from modelmirror.class_provider.class_register import ClassRegister
+
+
+class IsolatedClassReference(BaseModel):
+    id: str
+    cls: Type
+    original_cls: Type
 
 
 class ClassScanner:
@@ -20,17 +26,17 @@ class ClassScanner:
         self.__original_classes: Dict[str, Type] = {}
         self.__isolated_classes: Dict[str, Type] = {}
 
-    def scan(self) -> list[ClassReference]:
+    def scan(self) -> list[IsolatedClassReference]:
         """Scan and create isolated class copies with validation."""
         self.__import_all_modules(self.__package_name)
         subclasses = self.__all_subclasses(ClassRegister)
-        classes_reference: list[ClassReference] = []
+        classes_reference: list[IsolatedClassReference] = []
 
         for cls in subclasses:
             if not cls.__module__.startswith(self.__package_name):
                 continue
 
-            class_reference = getattr(cls, "reference", None)
+            class_reference: ClassReference | None = getattr(cls, "reference", None)
             if not class_reference:
                 continue
 
@@ -39,7 +45,9 @@ class ClassScanner:
 
             # Create isolated copy instead of modifying original
             isolated_class = self.__create_isolated_class(class_reference.cls)
-            isolated_reference = ClassReference(id=class_reference.id, cls=isolated_class)
+            isolated_reference = IsolatedClassReference(
+                id=class_reference.id, cls=isolated_class, original_cls=class_reference.cls
+            )
 
             classes_reference.append(isolated_reference)
 
@@ -71,7 +79,7 @@ class ClassScanner:
         self.__isolated_classes[class_name] = IsolatedClass
         return IsolatedClass
 
-    def __is_duplicate(self, reference: ClassReference, existing: list[ClassReference]) -> bool:
+    def __is_duplicate(self, reference: ClassReference, existing: list[IsolatedClassReference]) -> bool:
         return any(ref.id == reference.id for ref in existing)
 
     def __import_all_modules(self, package_name: str):

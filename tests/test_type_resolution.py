@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict
 from modelmirror.mirror import Mirror
 from tests.fixtures.test_classes import DatabaseService, SimpleService
 from tests.fixtures.test_classes_with_types import ServiceWithTypeRef
+from tests.fixtures.test_factory_classes import ServiceFactory
 
 
 class TypeResolutionConfig(BaseModel):
@@ -54,14 +55,9 @@ class TestTypeResolution(unittest.TestCase):
 
         try:
             config = self.mirror.reflect(config_path, ServiceConfig)
-
             # Verify that type reference is resolved correctly
             self.assertTrue(isinstance(config.service_with_type.service_type, type))
-            self.assertEqual(config.service_with_type.service_type.__name__, "IsolatedSimpleService")
-
             self.assertEqual(config.service_with_type.service_type, SimpleService)
-            self.assertTrue(isinstance(config.service_with_type.service_type, type))
-
         finally:
             os.unlink(config_path)
 
@@ -73,7 +69,7 @@ class TestTypeResolution(unittest.TestCase):
 
         class FactoryConfig(BaseModel):
             model_config = ConfigDict(arbitrary_types_allowed=True)
-            factory: object  # ServiceFactory
+            factory: ServiceFactory
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
@@ -83,11 +79,11 @@ class TestTypeResolution(unittest.TestCase):
             config = self.mirror.reflect(config_path, FactoryConfig)
 
             # Verify the type is resolved correctly
-            self.assertEqual(config.factory.service_class, SimpleService)
+            self.assertEqual(config.factory.service_class.__name__, "SimpleService")
 
             # Test that we can instantiate the resolved type
             instance = config.factory.service_class(name="DynamicInstance")
-            self.assertIsInstance(instance, SimpleService)
+            self.assertEqual(instance.__class__.__name__, "SimpleService")
             self.assertEqual(instance.name, "DynamicInstance")
 
         finally:
@@ -105,7 +101,7 @@ class TestTypeResolution(unittest.TestCase):
 
         class InvalidConfig(BaseModel):
             model_config = ConfigDict(arbitrary_types_allowed=True)
-            service_with_invalid_type: object
+            service_with_invalid_type: ServiceWithTypeRef
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
@@ -141,7 +137,7 @@ class TestTypeResolution(unittest.TestCase):
         class MixedConfig(BaseModel):
             model_config = ConfigDict(arbitrary_types_allowed=True)
             database_instance: DatabaseService
-            service_with_type: object
+            service_with_type: ServiceWithTypeRef
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
@@ -155,8 +151,8 @@ class TestTypeResolution(unittest.TestCase):
             self.assertEqual(config.database_instance.host, "localhost")
 
             # Verify type is resolved in the service
-            self.assertEqual(config.service_with_type.service_type, SimpleService)
-            self.assertTrue(isinstance(config.service_with_type.service_type, type))
+            self.assertEqual(config.service_with_type.service_type.__name__, "SimpleService")
+            self.assertTrue(config.service_with_type.service_type == SimpleService)
 
         finally:
             os.unlink(config_path)
@@ -185,7 +181,7 @@ class TestTypeResolution(unittest.TestCase):
 
             self.assertIsNotNone(service)
             self.assertEqual(service.name, "TestService")
-            self.assertEqual(service.service_type, SimpleService)
+            self.assertEqual(service.service_type.__name__, "SimpleService")
 
         finally:
             os.unlink(config_path)

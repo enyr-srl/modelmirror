@@ -8,7 +8,7 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
-from modelmirror.class_provider.class_reference import ClassReference
+from modelmirror.class_provider.class_scanner import IsolatedClassReference
 from modelmirror.instance.instance_properties import InstanceProperties
 from modelmirror.instance.reference_service import ReferenceService
 from modelmirror.parser.code_link_parser import CodeLinkParser
@@ -26,7 +26,7 @@ class ReflectionEngine:
 
     def __init__(
         self,
-        registered_classes: list[ClassReference],
+        registered_classes: list[IsolatedClassReference],
         code_link_parser: CodeLinkParser,
         model_link_parser: ModelLinkParser,
         check_circular_types: bool,
@@ -102,7 +102,7 @@ class ReflectionEngine:
             )
         self.__singleton_path[instance] = node_id
 
-    def __get_class_reference(self, id: str) -> ClassReference:
+    def __get_class_reference(self, id: str) -> IsolatedClassReference:
         for registered_class in self.__registered_classes:
             if registered_class.id == id:
                 return registered_class

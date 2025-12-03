@@ -4,11 +4,13 @@ Test classes that accept Type parameters for testing type references.
 
 from typing import Optional, Type
 
+from tests.fixtures.test_classes import SimpleService
+
 
 class ServiceWithTypeRef:
     """Service that accepts a type reference as a parameter."""
 
-    def __init__(self, name: str, service_type: Type):
+    def __init__(self, name: str, service_type: type[SimpleService]):
         self.name = name
         self.service_type = service_type
 
