@@ -23,7 +23,9 @@ class Mirror:
         model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
         check_circular_types: bool = True,
     ) -> "Mirror":
-        return MirrorSingletons.get_or_create_instance(cls, package_name, code_link_parser, model_link_parser)
+        return MirrorSingletons.get_or_create_instance(
+            cls, package_name, code_link_parser, model_link_parser, check_circular_types
+        )
 
     def __init__(
         self,
