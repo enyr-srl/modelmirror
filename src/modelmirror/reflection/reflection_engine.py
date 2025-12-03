@@ -29,12 +29,14 @@ class ReflectionEngine:
         registered_classes: list[ClassReference],
         code_link_parser: CodeLinkParser,
         model_link_parser: ModelLinkParser,
+        check_circular_types: bool,
     ):
         self.__registered_classes = registered_classes
         self.__code_link_parser = code_link_parser
         self.__instance_properties: dict[str, InstanceProperties] = {}
         self.__singleton_path: dict[str, str] = {}
         self.__model_link_parser = model_link_parser
+        self.__check_circular_types = check_circular_types
         self.__reset_state()
 
     def reflect_typed(self, config_path: str, model: type[T]) -> T:
@@ -107,6 +109,7 @@ class ReflectionEngine:
         raise ValueError(f"Registry item with id {id} not found")
 
     def __resolve_instances(self) -> dict[str, Any]:
+        self.__check_dependencies()
         instance_refs: dict[str, list[str]] = {}
         for instance, properties in self.__instance_properties.items():
             instance_refs[instance] = self.__model_links_to_paths(properties.model_links)
@@ -119,13 +122,25 @@ class ReflectionEngine:
             self.__registered_classes,
         )
 
-    def __model_links_to_paths(self, model_links: list[ModelLink]) -> list[str]:
+    def __check_dependencies(self):
+        instance_refs: dict[str, list[str]] = {}
+        for instance, properties in self.__instance_properties.items():
+            instance_refs[instance] = self.__model_links_to_paths(properties.model_links, True)
+        try:
+            TopologicalSorter(instance_refs).static_order()
+        except Exception as e:
+            raise Exception(f"Circular dependency detected: {e}")
+
+    def __model_links_to_paths(self, model_links: list[ModelLink], check_types: bool = False) -> list[str]:
         paths: list[str] = []
         for model_link in model_links:
             if model_link.type == "instance":
                 if model_link.id not in self.__singleton_path:
                     raise Exception(f"Id {model_link} has not a corresponding reference")
                 paths.append(self.__singleton_path[model_link.id])
+            if check_types:
+                if model_link.type == "type" and self.__check_circular_types:
+                    paths.append(model_link.id)
         return paths
 
     def __instantiate_model(self, instances: dict[str, Any]):

@@ -18,6 +18,8 @@ from tests.fixtures.test_classes import (
     UserService,
     ValidationService,
 )
+from tests.fixtures.test_classes_with_types import CircularServiceA, CircularServiceB, ServiceWithTypeRef
+from tests.fixtures.test_factory_classes import CircularDependentService, DependentService, ServiceFactory
 
 
 class SimpleServiceRegister(ClassRegister):
@@ -62,3 +64,27 @@ class NestedServiceRegister(ClassRegister):
 
 class ValidationServiceRegister(ClassRegister):
     reference = ClassReference(id="validation_service", cls=ValidationService)
+
+
+class ServiceWithTypeRefRegister(ClassRegister):
+    reference = ClassReference(id="service_with_type_ref", cls=ServiceWithTypeRef)
+
+
+class CircularServiceARegister(ClassRegister):
+    reference = ClassReference(id="circular_service_a", cls=CircularServiceA)
+
+
+class CircularServiceBRegister(ClassRegister):
+    reference = ClassReference(id="circular_service_b", cls=CircularServiceB)
+
+
+class ServiceFactoryRegister(ClassRegister):
+    reference = ClassReference(id="service_factory", cls=ServiceFactory)
+
+
+class DependentServiceRegister(ClassRegister):
+    reference = ClassReference(id="dependent_service", cls=DependentService)
+
+
+class CircularDependentServiceRegister(ClassRegister):
+    reference = ClassReference(id="circular_dependent_service", cls=CircularDependentService)

@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict
 
 from modelmirror.mirror import Mirror
 from tests.fixtures.test_classes import DatabaseService, SimpleService
+from tests.fixtures.test_classes_with_types import ServiceWithTypeRef
 
 
 class TypeResolutionConfig(BaseModel):
@@ -35,42 +36,57 @@ class TestTypeResolution(unittest.TestCase):
 
     def test_basic_type_resolution(self):
         """Test that type references resolve to correct classes."""
-        config_data = {"service_type": "$simple_service$", "database_type": "$database_service$"}
+        config_data = {
+            "service_with_type": {
+                "$mirror": "service_with_type_ref",
+                "name": "TestService",
+                "service_type": "$simple_service$",
+            }
+        }
+
+        class ServiceConfig(BaseModel):
+            model_config = ConfigDict(arbitrary_types_allowed=True)
+            service_with_type: ServiceWithTypeRef
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
             config_path = f.name
 
         try:
-            config = self.mirror.reflect(config_path, TypeResolutionConfig)
+            config = self.mirror.reflect(config_path, ServiceConfig)
 
-            # Verify that type references return the actual classes
-            self.assertEqual(config.service_type, SimpleService)
-            self.assertEqual(config.database_type, DatabaseService)
+            # Verify that type reference is resolved correctly
+            self.assertTrue(isinstance(config.service_with_type.service_type, type))
+            self.assertEqual(config.service_with_type.service_type.__name__, "IsolatedSimpleService")
 
-            # Verify they are actual class types, not instances
-            self.assertTrue(isinstance(config.service_type, type))
-            self.assertTrue(isinstance(config.database_type, type))
+            self.assertEqual(config.service_with_type.service_type, SimpleService)
+            self.assertTrue(isinstance(config.service_with_type.service_type, type))
 
         finally:
             os.unlink(config_path)
 
     def test_type_instantiation_works(self):
         """Test that resolved types can be instantiated correctly."""
-        config_data = {"service_class": "$simple_service$", "name": "TestService"}
+        config_data = {
+            "factory": {"$mirror": "service_factory", "service_class": "$simple_service$", "dependency_service": None}
+        }
+
+        class FactoryConfig(BaseModel):
+            model_config = ConfigDict(arbitrary_types_allowed=True)
+            factory: object  # ServiceFactory
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
             config_path = f.name
 
         try:
-            config = self.mirror.reflect(config_path, ServiceWithTypeConfig)
+            config = self.mirror.reflect(config_path, FactoryConfig)
 
             # Verify the type is resolved correctly
-            self.assertEqual(config.service_class, SimpleService)
+            self.assertEqual(config.factory.service_class, SimpleService)
 
             # Test that we can instantiate the resolved type
-            instance = config.service_class(name="DynamicInstance")
+            instance = config.factory.service_class(name="DynamicInstance")
             self.assertIsInstance(instance, SimpleService)
             self.assertEqual(instance.name, "DynamicInstance")
 
@@ -79,7 +95,17 @@ class TestTypeResolution(unittest.TestCase):
 
     def test_invalid_type_reference_raises_error(self):
         """Test that invalid type references raise appropriate errors."""
-        config_data = {"service_type": "$nonexistent_service$", "database_type": "$database_service$"}
+        config_data = {
+            "service_with_invalid_type": {
+                "$mirror": "service_with_type_ref",
+                "name": "TestService",
+                "service_type": "$nonexistent_service$",
+            }
+        }
+
+        class InvalidConfig(BaseModel):
+            model_config = ConfigDict(arbitrary_types_allowed=True)
+            service_with_invalid_type: object
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
@@ -87,7 +113,7 @@ class TestTypeResolution(unittest.TestCase):
 
         try:
             with self.assertRaises(KeyError) as context:
-                self.mirror.reflect(config_path, TypeResolutionConfig)
+                self.mirror.reflect(config_path, InvalidConfig)
 
             # Verify the error message mentions the missing class
             self.assertIn("nonexistent_service", str(context.exception))
@@ -105,15 +131,17 @@ class TestTypeResolution(unittest.TestCase):
                 "port": 5432,
                 "database_name": "testdb",
             },
-            "service_type": "$simple_service$",
-            "database_type": "$database_service$",
+            "service_with_type": {
+                "$mirror": "service_with_type_ref",
+                "name": "MixedService",
+                "service_type": "$simple_service$",
+            },
         }
 
         class MixedConfig(BaseModel):
             model_config = ConfigDict(arbitrary_types_allowed=True)
             database_instance: DatabaseService
-            service_type: Type[SimpleService]
-            database_type: Type[DatabaseService]
+            service_with_type: object
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             json.dump(config_data, f)
@@ -126,13 +154,9 @@ class TestTypeResolution(unittest.TestCase):
             self.assertIsInstance(config.database_instance, DatabaseService)
             self.assertEqual(config.database_instance.host, "localhost")
 
-            # Verify types are resolved
-            self.assertEqual(config.service_type, SimpleService)
-            self.assertEqual(config.database_type, DatabaseService)
-
-            # Verify types are classes, not instances
-            self.assertTrue(isinstance(config.service_type, type))
-            self.assertTrue(isinstance(config.database_type, type))
+            # Verify type is resolved in the service
+            self.assertEqual(config.service_with_type.service_type, SimpleService)
+            self.assertTrue(isinstance(config.service_with_type.service_type, type))
 
         finally:
             os.unlink(config_path)

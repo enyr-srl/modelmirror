@@ -21,6 +21,7 @@ class Mirror:
         package_name: str = "app",
         code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
         model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
+        check_circular_types: bool = True,
     ) -> "Mirror":
         return MirrorSingletons.get_or_create_instance(cls, package_name, code_link_parser, model_link_parser)
 
@@ -29,13 +30,14 @@ class Mirror:
         package_name: str = "app",
         code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
         model_link: ModelLinkParser = DefaultModelLinkParser(),
+        check_circular_types: bool = True,
     ):
         if hasattr(self, "_initialized"):
             return
         scanner = ClassScanner(package_name)
         registered_classes = scanner.scan()
 
-        self.__engine = ReflectionEngine(registered_classes, code_link_parser, model_link)
+        self.__engine = ReflectionEngine(registered_classes, code_link_parser, model_link, check_circular_types)
         self._initialized = True
 
     def reflect(self, config_path: str, model: type[T], *, cached: bool = True) -> T:
