@@ -31,31 +31,6 @@ class MutableDefaultService:
         self.items.append(item)
 
 
-class FastAPILikeService:
-    """Service that mimics FastAPI-like behavior with complex defaults."""
-
-    def __init__(
-        self,
-        title: str,
-        dependencies: List[str] | None = None,
-        middleware: List[Dict[str, str]] | None = None,
-        routes: Dict[str, str] | None = None,
-    ):
-        self.title = title
-        self.dependencies = dependencies or []
-        self.middleware = middleware or []
-        self.routes = routes or {}
-
-    def add_dependency(self, dep: str):
-        self.dependencies.append(dep)
-
-    def add_middleware(self, name: str, config: str):
-        self.middleware.append({"name": name, "config": config})
-
-    def add_route(self, path: str, handler: str):
-        self.routes[path] = handler
-
-
 class StatefulService:
     """Service that maintains internal state to test isolation."""
 

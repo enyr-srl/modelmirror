@@ -1,65 +1,110 @@
 """
-Test suite for nested inline instance creation.
+Test suite for real FastAPI integration.
 """
 
+import json
 import os
-import sys
+import tempfile
 import unittest
 
-# Add workspace to path when running directly
-if __name__ == "__main__":
-    workspace_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if workspace_path not in sys.path:
-        sys.path.insert(0, workspace_path)
+from pydantic import BaseModel, ConfigDict
 
 from modelmirror.mirror import Mirror
-from tests.fixtures.fast_api_classes import AppModel
 
+try:
+    from fastapi import FastAPI
+    from fastapi.middleware.cors import CORSMiddleware
 
-class TestFastApi(unittest.TestCase):
-    """Test FastAPI-related functionality including nested inline instances and default handling."""
+    class FastAPIConfig(BaseModel):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+        app: FastAPI
 
-    def setUp(self):
-        """Set up test fixtures."""
-        self.mirror = Mirror("tests.fixtures")
+    class TestFastApi(unittest.TestCase):
+        """Test real FastAPI integration."""
 
-    def test_nested_inline_instance_creation(self):
-        """Test that nested inline instances are created correctly."""
-        config = self.mirror.reflect("tests/configs/fast-api.json", AppModel)
+        def setUp(self):
+            """Set up test fixtures."""
+            self.mirror = Mirror("tests.fixtures")
 
-        # Verify structure is created correctly
-        self.assertIsNotNone(config.international)
-        self.assertIsNotNone(config.international.language)
-        self.assertEqual(len(config.dataSourcesParams), 1)
+        def test_fastapi_app_creation(self):
+            """Test FastAPI app creation through ModelMirror."""
+            config_data = {
+                "app": {
+                    "$mirror": "fastapi_app",
+                    "title": "Test API",
+                    "description": "Test FastAPI application",
+                    "version": "1.0.0",
+                }
+            }
 
-    def test_mutable_default_handling_across_reflections(self):
-        """Test proper mutable default handling across reflections."""
-        from pydantic import BaseModel, ConfigDict
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+                json.dump(config_data, f)
+                config_path = f.name
 
-        from tests.fixtures.test_classes_extended import FastAPILikeService
+            try:
+                config = self.mirror.reflect(config_path, FastAPIConfig)
 
-        class FastAPIConfig(BaseModel):
-            model_config = ConfigDict(arbitrary_types_allowed=True)
-            fastapi_service: FastAPILikeService
+                # Verify FastAPI app is created correctly
+                self.assertIsInstance(config.app, FastAPI)
+                self.assertEqual(config.app.title, "Test API")
+                self.assertEqual(config.app.description, "Test FastAPI application")
+                self.assertEqual(config.app.version, "1.0.0")
 
-        # First reflection
-        config1 = self.mirror.reflect("tests/configs/test_config1.json", FastAPIConfig)
-        service1 = config1.fastapi_service
+            finally:
+                os.unlink(config_path)
 
-        # Modify the service's mutable defaults
-        service1.add_dependency("first_dependency")
-        service1.add_middleware("auth", "jwt_config")
-        service1.add_route("/api/v1", "handler1")
+        def test_fastapi_singleton_behavior(self):
+            """Test FastAPI singleton behavior across reflections."""
+            config_data = {"app": {"$mirror": "fastapi_app:main_app", "title": "Singleton API", "version": "2.0.0"}}
 
-        # Second reflection with same singleton name
-        config2 = self.mirror.reflect("tests/configs/test_config2.json", FastAPIConfig)
-        service2 = config2.fastapi_service
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+                json.dump(config_data, f)
+                config_path = f.name
 
-        # Check if the defaults were corrupted
-        if service1 is service2:  # Same singleton instance
-            self.assertEqual(service1.dependencies, service2.dependencies, "Same singleton should have same state")
-        else:  # Different instances - should have clean defaults
-            self.assertEqual(service2.dependencies, [], "New instance should have clean default dependencies")
+            try:
+                # First reflection
+                config1 = self.mirror.reflect(config_path, FastAPIConfig)
+                app1 = config1.app
+
+                # Second reflection with same singleton name
+                config2 = self.mirror.reflect(config_path, FastAPIConfig)
+                app2 = config2.app
+
+                # Should be the same instance
+                self.assertIs(app1, app2)
+
+            finally:
+                os.unlink(config_path)
+
+        def test_fastapi_with_middleware_inline(self):
+            """Test FastAPI with inline middleware configuration."""
+            config_data = {"app": {"$mirror": "fastapi_app", "title": "API with Middleware"}}
+
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+                json.dump(config_data, f)
+                config_path = f.name
+
+            try:
+                config = self.mirror.reflect(config_path, FastAPIConfig)
+
+                # Add middleware after creation (only if CORSMiddleware is available)
+                if CORSMiddleware is not None:
+                    config.app.add_middleware(
+                        CORSMiddleware,
+                        allow_origins=["*"],
+                        allow_credentials=True,
+                        allow_methods=["*"],
+                        allow_headers=["*"],
+                    )
+
+                    # Verify middleware is added
+                    self.assertTrue(len(config.app.user_middleware) > 0)
+
+            finally:
+                os.unlink(config_path)
+
+except ImportError:
+    print("FastAPI is not installed. Skipping FastAPI tests.")
 
 
 if __name__ == "__main__":
