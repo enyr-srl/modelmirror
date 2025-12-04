@@ -39,6 +39,17 @@
                     ]
                 }
             }
-        }
+        },
+        "middleware": [
+            {
+                "$mirror": "middleware",
+                "cls": "$cors-middleware$",
+                "allow_origins": "cors_policy.origins",
+                "allow_origin_regex": "cors_policy.allow_origin_regex",
+                "allow_credentials": "True",
+                "allow_methods": [],
+                "allow_headers": []
+            }
+        ]
     }
 }

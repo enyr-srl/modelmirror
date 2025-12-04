@@ -7,6 +7,8 @@ from modelmirror.class_provider.class_register import ClassRegister
 
 try:
     from fastapi import FastAPI
+    from fastapi.middleware import Middleware
+    from fastapi.middleware.cors import CORSMiddleware
 
     from tests.fixtures.test_fastapi_classes import LifeSpan, StartupCallbacks, StartupStrategy
 
@@ -21,6 +23,12 @@ try:
 
     class StartupCallbacksClassRegister(ClassRegister):
         reference = ClassReference(id="startup-callbacks", cls=StartupCallbacks)
+
+    class MiddlewareClassRegister(ClassRegister):
+        reference = ClassReference(id="middleware", cls=Middleware)
+
+    class CORSMiddlewareClassRegister(ClassRegister):
+        reference = ClassReference(id="cors-middleware", cls=CORSMiddleware)
 
 except ImportError:
     pass
