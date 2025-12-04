@@ -5,13 +5,6 @@ These registers link the test classes to their schema identifiers.
 
 from modelmirror.class_provider.class_reference import ClassReference
 from modelmirror.class_provider.class_register import ClassRegister
-from tests.fixtures.helper_classes import (
-    International,
-    Language,
-    MSSQLConnectionParameters,
-    MSSQLConnectionPool,
-    MssqlLanguageStore,
-)
 from tests.fixtures.test_classes import (
     ComplexService,
     ConfigurableService,
@@ -27,6 +20,13 @@ from tests.fixtures.test_classes import (
 )
 from tests.fixtures.test_classes_with_types import CircularServiceA, CircularServiceB, ServiceWithTypeRef
 from tests.fixtures.test_factory_classes import CircularDependentService, DependentService, ServiceFactory
+from tests.fixtures.test_helper_classes import (
+    International,
+    Language,
+    MSSQLConnectionParameters,
+    MSSQLConnectionPool,
+    MssqlLanguageStore,
+)
 
 
 class SimpleServiceRegister(ClassRegister):

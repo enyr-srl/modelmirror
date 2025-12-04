@@ -7,8 +7,8 @@ import unittest
 from pydantic import BaseModel, ConfigDict
 
 from modelmirror.mirror import Mirror
-from tests.fixtures.helper_classes import AppModel
 from tests.fixtures.test_classes import DatabaseService, SimpleService, UserService
+from tests.fixtures.test_helper_classes import AppModel
 
 
 class MixedConfig(BaseModel):

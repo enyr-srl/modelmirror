@@ -1,0 +1,44 @@
+{
+    "international": {
+        "$mirror": "international",
+        "language": {
+            "$mirror": "language:language",
+            "store": {
+                "$mirror": "language-store-mssql",
+                "connection_pool": {
+                    "$mirror": "connection-pool-mssql",
+                    "connection_parameters": {
+                        "$mirror": "connection-param-mssql:test",
+                        "driver": "test",
+                        "server": "test",
+                        "database": "test",
+                        "encrypt": "test",
+                        "uid": "test",
+                        "pwd": "test",
+                        "trust_server_certificate": "test"
+                    }
+                },
+                "translations_table": "ciao2"
+            },
+            "locales_dir": "locales"
+        }
+    },
+    "app": {
+        "$mirror": "fast-api",
+        "title": "Test API",
+        "description": "Test FastAPI application",
+        "version": "1.0.0",
+        "lifespan": {
+            "$mirror": "life-span",
+            "startup_strategy": {
+                "$mirror": "startup-strategy",
+                "callbacks": {
+                    "$mirror": "startup-callbacks",
+                    "callbacks": [
+                        "$language"
+                    ]
+                }
+            }
+        }
+    }
+}

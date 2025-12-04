@@ -1,6 +1,6 @@
 {
     "app": {
-        "$mirror": "fastapi_app:main_app",
+        "$mirror": "fast-api:main_app",
         "title": "Singleton API",
         "version": "2.0.0"
     }

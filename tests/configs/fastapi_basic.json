@@ -1,6 +1,6 @@
 {
     "app": {
-        "$mirror": "fastapi_app",
+        "$mirror": "fast-api",
         "title": "Test API",
         "description": "Test FastAPI application",
         "version": "1.0.0"

@@ -70,6 +70,9 @@ class Language:
         self.__store = store
         self.__locales_dir = locales_dir
 
+    def __call__(self):
+        print("Language called")
+
 
 class International(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True, extra="forbid")
