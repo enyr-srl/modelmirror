@@ -14,6 +14,7 @@ from modelmirror.instance.reference_service import ReferenceService
 from modelmirror.parser.code_link_parser import CodeLinkParser
 from modelmirror.parser.model_link import ModelLink
 from modelmirror.parser.model_link_parser import ModelLinkParser
+from modelmirror.parser.secret_parser import SecretParser
 from modelmirror.reflections import Reflections
 from modelmirror.utils import json_utils
 from modelmirror.utils.json_utils import NodeContext
@@ -30,6 +31,7 @@ class ReflectionEngine:
         code_link_parser: CodeLinkParser,
         model_link_parser: ModelLinkParser,
         check_circular_types: bool,
+        secret_parser: SecretParser,
     ):
         self.__registered_classes = registered_classes
         self.__code_link_parser = code_link_parser
@@ -37,6 +39,7 @@ class ReflectionEngine:
         self.__singleton_path: dict[str, str] = {}
         self.__model_link_parser = model_link_parser
         self.__check_circular_types = check_circular_types
+        self.__secret_parser = secret_parser
         self.__reset_state()
 
     def reflect_typed(self, config_path: str, model: type[T]) -> T:
@@ -121,6 +124,7 @@ class ReflectionEngine:
             self.__singleton_path,
             self.__model_link_parser,
             self.__registered_classes,
+            self.__secret_parser,
         )
 
     def __check_dependencies(self):

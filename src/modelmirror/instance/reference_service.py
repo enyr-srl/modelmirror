@@ -5,6 +5,7 @@ from modelmirror.instance.instance_properties import InstanceProperties
 from modelmirror.instance.validation_service import ValidationService
 from modelmirror.parser.model_link import ModelLink
 from modelmirror.parser.model_link_parser import ModelLinkParser
+from modelmirror.parser.secret_parser import SecretParser
 
 
 class ReferenceService:
@@ -19,13 +20,14 @@ class ReferenceService:
         singleton_path: dict[str, str],
         model_link_parser: ModelLinkParser,
         registered_classes: list[ClassReference],
+        secret_parser: SecretParser,
     ) -> dict[str, Any]:
         self.__instances = {}
         for instance_name in instance_names:
             properties = instance_properties.get(instance_name)
             if properties:
                 resolved_params = self.__resolve_params(
-                    properties, self.__instances, singleton_path, model_link_parser, registered_classes
+                    properties, self.__instances, singleton_path, model_link_parser, registered_classes, secret_parser
                 )
                 self.__validation_service.validate_or_raise(properties.class_reference.cls, resolved_params)
                 original_instance = (properties.class_reference.cls)(**resolved_params)
@@ -64,6 +66,7 @@ class ReferenceService:
         singleton_path: dict[str, str],
         model_link_parser: ModelLinkParser,
         registered_classes: list[ClassReference],
+        secret_parser: SecretParser,
     ) -> dict[str, Any]:
         def resolve_value(key: str, value: Any, node_id: str) -> Any:
             # "$something" -> instances["something"]
@@ -98,7 +101,10 @@ class ReferenceService:
             if isinstance(value, tuple):
                 return tuple(resolve_value(str(i), v, f"{node_id}.{i}") for i, v in enumerate(value))
 
-            # Anything else is returned as-is
+            if isinstance(value, str):
+                mirror_secret = secret_parser.parse(value)
+                if mirror_secret:
+                    return mirror_secret.value
             return value
 
         return {k: resolve_value(k, v, properties.node_id) for k, v in properties.config_params.items()}

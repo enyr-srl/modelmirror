@@ -6,7 +6,9 @@ from modelmirror.class_provider.class_scanner import ClassScanner
 from modelmirror.parser.code_link_parser import CodeLinkParser
 from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
 from modelmirror.parser.default_model_link_parser import DefaultModelLinkParser
+from modelmirror.parser.default_secret_parser import DefaultSecretParser
 from modelmirror.parser.model_link_parser import ModelLinkParser
+from modelmirror.parser.secret_parser import SecretParser
 from modelmirror.reflection.reflection_engine import ReflectionEngine
 from modelmirror.reflections import Reflections
 from modelmirror.singleton.singleton_manager import MirrorSingletons
@@ -21,9 +23,10 @@ class Mirror:
         code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
         model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
         check_circular_types: bool = True,
+        secret_parser: SecretParser = DefaultSecretParser("/run/secrets"),
     ) -> "Mirror":
         return MirrorSingletons.get_or_create_instance(
-            cls, package_name, code_link_parser, model_link_parser, check_circular_types
+            cls, package_name, code_link_parser, model_link_parser, check_circular_types, secret_parser
         )
 
     def __init__(
@@ -32,6 +35,7 @@ class Mirror:
         code_link_parser: CodeLinkParser = DefaultCodeLinkParser(),
         model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
         check_circular_types: bool = True,
+        secret_parser: SecretParser = DefaultSecretParser("/run/secrets"),
     ):
         if hasattr(self, "_initialized"):
             return
@@ -39,7 +43,9 @@ class Mirror:
         scanner = ClassScanner(package_name)
         registered_classes = scanner.scan()
 
-        self.__engine = ReflectionEngine(registered_classes, code_link_parser, model_link_parser, check_circular_types)
+        self.__engine = ReflectionEngine(
+            registered_classes, code_link_parser, model_link_parser, check_circular_types, secret_parser
+        )
         self.__cache: dict[str, Any] = {}
         self._initialized = True
 
