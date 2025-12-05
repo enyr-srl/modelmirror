@@ -1,6 +1,6 @@
 [project]
 name = "modelmirror"
-version = "0.1.27"
+version = "0.1.28"
 description = "Model Mirror"
 readme = "README.md"
 requires-python = ">=3.10"
