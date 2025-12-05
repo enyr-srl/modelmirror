@@ -19,9 +19,9 @@ authors = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/lorebrt/modelmirror"
-Repository = "https://github.com/lorebrt/modelmirror"
-Issues = "https://github.com/lorebrt/modelmirror/issues"
+Homepage = "https://github.com/enyr-srl/modelmirror"
+Repository = "https://github.com/enyr-srl/modelmirror"
+Issues = "https://github.com/enyr-srl/modelmirror/issues"
 
 [dependency-groups]
 dev = [
