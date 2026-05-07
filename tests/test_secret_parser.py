@@ -72,13 +72,9 @@ class TestSecretParser(unittest.TestCase):
         if result is not None:
             self.assertEqual(result.value, "jwt_signing_key_xyz")
 
-    def test_secret_parser_missing_secret(self):
-        """Test behavior when secret file doesn't exist."""
-        with self.assertRaises(ValueError) as context:
-            result = self.secret_parser.parse("MISSING_SECRET")
-            if result is not None:
-                _ = result.value
-        self.assertIn("Secret MISSING_SECRET not found", str(context.exception))
+    def test_secret_parser_returns_none_for_missing_secret_so_chain_can_fall_through(self):
+        result = self.secret_parser.parse("MISSING_SECRET")
+        self.assertIsNone(result)
 
     def test_secret_factory_direct_usage(self):
         """Test SecretFactory directly."""

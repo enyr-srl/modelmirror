@@ -8,6 +8,9 @@ class DefaultSecretParser(SecretParser):
         self.__secret_factory = SecretFactory(secrets_dir)
 
     def parse(self, name: str) -> MirrorSecret | None:
-        if name.isupper():
+        if not name.isupper():
+            return None
+        try:
             return MirrorSecret(self.__secret_factory.get(name))
-        return None
+        except ValueError:
+            return None
