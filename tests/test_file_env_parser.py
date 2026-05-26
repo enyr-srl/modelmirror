@@ -8,7 +8,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from modelmirror.file_env.file_env_factory import FileEnvFactory
+from modelmirror.envs.file_env_factory import FileEnvFactory
 from modelmirror.mirror import Mirror
 from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.file_env_parser import FileEnvParser

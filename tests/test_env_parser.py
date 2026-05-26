@@ -9,7 +9,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict
 
-from modelmirror.env.env_factory import EnvFactory
+from modelmirror.envs.env_factory import EnvFactory
 from modelmirror.mirror import Mirror
 from modelmirror.parser.default_env_parser import DefaultEnvParser
 from modelmirror.parser.env_parser import EnvParser

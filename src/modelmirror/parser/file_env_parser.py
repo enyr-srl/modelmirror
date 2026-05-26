@@ -1,4 +1,4 @@
-from modelmirror.file_env.file_env_factory import FileEnvFactory
+from modelmirror.envs.file_env_factory import FileEnvFactory
 from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.mirror_env import MirrorEnv
 
