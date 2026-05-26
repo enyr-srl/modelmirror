@@ -243,6 +243,22 @@ class TestEnvParserIntegration(unittest.TestCase):
         self.assertEqual(config2.database_url, "postgres://localhost/app")
         self.assertIsNot(config1, config2)
 
+    def test_reflect_raises_when_env_variable_is_missing(self):
+        os.environ.pop("MODELMIRROR_DEFINITELY_MISSING", None)
+
+        config_content = """{
+    "database_url": "ENV_MODELMIRROR_DEFINITELY_MISSING"
+}"""
+        config_path = self.config_dir / "env_missing.json"
+        config_path.write_text(config_content)
+
+        class MissingConfig(BaseModel):
+            database_url: str
+
+        mirror = Mirror("tests.fixtures", env_parser=DefaultEnvParser())
+        with self.assertRaises(ValueError):
+            mirror.reflect(str(config_path), MissingConfig)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
