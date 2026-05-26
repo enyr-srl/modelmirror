@@ -3,6 +3,7 @@ from typing import Any, Mapping
 from modelmirror.class_provider.class_scanner import ClassReference
 from modelmirror.instance.instance_properties import InstanceProperties
 from modelmirror.instance.validation_service import ValidationService
+from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.model_link import ModelLink
 from modelmirror.parser.model_link_parser import ModelLinkParser
 from modelmirror.parser.secret_parser import SecretParser
@@ -21,13 +22,20 @@ class ReferenceService:
         model_link_parser: ModelLinkParser,
         registered_classes: list[ClassReference],
         secret_parser: SecretParser,
+        env_parser: EnvParser,
     ) -> dict[str, Any]:
         self.__instances = {}
         for instance_name in instance_names:
             properties = instance_properties.get(instance_name)
             if properties:
                 resolved_params = self.__resolve_params(
-                    properties, self.__instances, singleton_path, model_link_parser, registered_classes, secret_parser
+                    properties,
+                    self.__instances,
+                    singleton_path,
+                    model_link_parser,
+                    registered_classes,
+                    secret_parser,
+                    env_parser,
                 )
                 original_instance = self.__validation_service.validate_or_raise(
                     properties.class_reference.cls, resolved_params
@@ -69,6 +77,7 @@ class ReferenceService:
         model_link_parser: ModelLinkParser,
         registered_classes: list[ClassReference],
         secret_parser: SecretParser,
+        env_parser: EnvParser,
     ) -> dict[str, Any]:
         def resolve_value(key: str, value: Any, node_id: str) -> Any:
             # "$something" -> instances["something"]
@@ -104,6 +113,9 @@ class ReferenceService:
                 return tuple(resolve_value(str(i), v, f"{node_id}.{i}") for i, v in enumerate(value))
 
             if isinstance(value, str):
+                mirror_env = env_parser.parse(value)
+                if mirror_env:
+                    return mirror_env.value
                 mirror_secret = secret_parser.parse(value)
                 if mirror_secret:
                     return mirror_secret.value

@@ -5,8 +5,10 @@ from pydantic import BaseModel
 from modelmirror.class_provider.class_scanner import ClassScanner
 from modelmirror.parser.code_link_parser import CodeLinkParser
 from modelmirror.parser.default_code_link_parser import DefaultCodeLinkParser
+from modelmirror.parser.default_env_parser import DefaultEnvParser
 from modelmirror.parser.default_model_link_parser import DefaultModelLinkParser
 from modelmirror.parser.default_secret_parser import DefaultSecretParser
+from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.model_link_parser import ModelLinkParser
 from modelmirror.parser.secret_parser import SecretParser
 from modelmirror.reflection.reflection_engine import ReflectionEngine
@@ -24,9 +26,10 @@ class Mirror:
         model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
         check_circular_types: bool = True,
         secret_parser: SecretParser = DefaultSecretParser("/run/secrets"),
+        env_parser: EnvParser = DefaultEnvParser(),
     ) -> "Mirror":
         return MirrorSingletons.get_or_create_instance(
-            cls, package_name, code_link_parser, model_link_parser, check_circular_types, secret_parser
+            cls, package_name, code_link_parser, model_link_parser, check_circular_types, secret_parser, env_parser
         )
 
     def __init__(
@@ -36,6 +39,7 @@ class Mirror:
         model_link_parser: ModelLinkParser = DefaultModelLinkParser(),
         check_circular_types: bool = True,
         secret_parser: SecretParser = DefaultSecretParser("/run/secrets"),
+        env_parser: EnvParser = DefaultEnvParser(),
     ):
         if hasattr(self, "_initialized"):
             return
@@ -44,7 +48,7 @@ class Mirror:
         registered_classes = scanner.scan()
 
         self.__engine = ReflectionEngine(
-            registered_classes, code_link_parser, model_link_parser, check_circular_types, secret_parser
+            registered_classes, code_link_parser, model_link_parser, check_circular_types, secret_parser, env_parser
         )
         self.__cache: dict[str, Any] = {}
         self._initialized = True

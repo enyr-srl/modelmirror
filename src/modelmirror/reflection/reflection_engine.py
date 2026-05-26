@@ -12,6 +12,7 @@ from modelmirror.class_provider.class_scanner import ClassReference
 from modelmirror.instance.instance_properties import InstanceProperties
 from modelmirror.instance.reference_service import ReferenceService
 from modelmirror.parser.code_link_parser import CodeLinkParser
+from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.model_link import ModelLink
 from modelmirror.parser.model_link_parser import ModelLinkParser
 from modelmirror.parser.secret_parser import SecretParser
@@ -32,6 +33,7 @@ class ReflectionEngine:
         model_link_parser: ModelLinkParser,
         check_circular_types: bool,
         secret_parser: SecretParser,
+        env_parser: EnvParser,
     ):
         self.__registered_classes = registered_classes
         self.__code_link_parser = code_link_parser
@@ -40,6 +42,7 @@ class ReflectionEngine:
         self.__model_link_parser = model_link_parser
         self.__check_circular_types = check_circular_types
         self.__secret_parser = secret_parser
+        self.__env_parser = env_parser
         self.__reset_state()
 
     def reflect_typed(self, config_path: str, model: type[T]) -> T:
@@ -125,6 +128,7 @@ class ReflectionEngine:
             self.__model_link_parser,
             self.__registered_classes,
             self.__secret_parser,
+            self.__env_parser,
         )
 
     def __check_dependencies(self):
@@ -176,8 +180,11 @@ class ReflectionEngine:
                     raise Exception(f"Instance path '{instance_path}' not found")
                 return instances[instance_path]
 
-            # Handle secrets for string values
+            # Handle env vars and secrets for string values (env takes precedence)
             if isinstance(node, str):
+                mirror_env = self.__env_parser.parse(node)
+                if mirror_env:
+                    return mirror_env.value
                 mirror_secret = self.__secret_parser.parse(node)
                 if mirror_secret:
                     return mirror_secret.value

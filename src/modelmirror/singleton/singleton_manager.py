@@ -3,6 +3,7 @@ import threading
 from typing import Any
 
 from modelmirror.parser.code_link_parser import CodeLinkParser
+from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.model_link_parser import ModelLinkParser
 from modelmirror.parser.secret_parser import SecretParser
 
@@ -21,10 +22,11 @@ class MirrorSingletons:
         model_link_parser: ModelLinkParser,
         check_circular_types: bool,
         secret_parser: SecretParser,
+        env_parser: EnvParser,
     ) -> Any:
         """Get existing singleton or create new one (automatically per thread/task context)."""
         instance_key = cls.__create_instance_key(
-            package_name, code_link_parser, model_link_parser, check_circular_types, secret_parser
+            package_name, code_link_parser, model_link_parser, check_circular_types, secret_parser, env_parser
         )
 
         # Get or create a lock for this specific instance key
@@ -49,10 +51,11 @@ class MirrorSingletons:
         model_link_parser: ModelLinkParser,
         check_circular_types: bool,
         secret_parser: SecretParser,
+        env_parser: EnvParser,
     ) -> str:
         """Create unique key for Mirror instance including thread/task context."""
         thread_id = threading.get_ident()
-        key = f"{package_name}:{id(code_link_parser)}:{id(model_link_parser)}:{check_circular_types}:{secret_parser}:{thread_id}"
+        key = f"{package_name}:{id(code_link_parser)}:{id(model_link_parser)}:{check_circular_types}:{secret_parser}:{env_parser}:{thread_id}"
         try:
             current_task = asyncio.current_task()
             if current_task:

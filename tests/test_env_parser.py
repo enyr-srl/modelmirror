@@ -3,9 +3,14 @@ Test suite for environment-variable parser functionality.
 """
 
 import os
+import tempfile
 import unittest
+from pathlib import Path
+
+from pydantic import BaseModel
 
 from modelmirror.env.env_factory import EnvFactory
+from modelmirror.mirror import Mirror
 from modelmirror.parser.default_env_parser import DefaultEnvParser
 from modelmirror.parser.env_parser import EnvParser
 from modelmirror.parser.mirror_env import MirrorEnv
@@ -76,6 +81,48 @@ class TestDefaultEnvParser(unittest.TestCase):
         os.environ.pop("MODELMIRROR_TEST_MISSING", None)
         with self.assertRaises(ValueError):
             self.parser.parse("ENV_MODELMIRROR_TEST_MISSING")
+
+
+class TestEnvParserIntegration(unittest.TestCase):
+    """Test env parser integration with Mirror."""
+
+    def setUp(self):
+        self._original_environ = dict(os.environ)
+        os.environ["MODELMIRROR_DB_URL"] = "postgres://localhost/app"
+        os.environ["MODELMIRROR_TOKEN"] = "tok_12345"
+
+        self.temp_dir = tempfile.mkdtemp()
+        self.config_dir = Path(self.temp_dir) / "configs"
+        self.config_dir.mkdir()
+
+    def tearDown(self):
+        os.environ.clear()
+        os.environ.update(self._original_environ)
+
+        import shutil
+
+        shutil.rmtree(self.temp_dir)
+
+    def test_mirror_resolves_env_values(self):
+        config_content = """{
+    "database_url": "ENV_MODELMIRROR_DB_URL",
+    "token": "ENV_MODELMIRROR_TOKEN",
+    "normal_value": "regular_string"
+}"""
+        config_path = self.config_dir / "env_basic.json"
+        config_path.write_text(config_content)
+
+        class EnvConfig(BaseModel):
+            database_url: str
+            token: str
+            normal_value: str
+
+        mirror = Mirror("tests.fixtures", env_parser=DefaultEnvParser())
+        config = mirror.reflect(str(config_path), EnvConfig)
+
+        self.assertEqual(config.database_url, "postgres://localhost/app")
+        self.assertEqual(config.token, "tok_12345")
+        self.assertEqual(config.normal_value, "regular_string")
 
 
 if __name__ == "__main__":
