@@ -959,6 +959,61 @@ custom_parser = EnvironmentSecretParser()
 mirror = Mirror('myapp', secret_parser=custom_parser)
 ```
 
+### Environment Variables
+
+ModelMirror resolves `ENV_`-prefixed strings to environment values through the
+`env_parser` slot. Two implementations are provided; the prefix is stripped to form
+the lookup name (`"ENV_DB_URL"` looks up `DB_URL`):
+
+- `DefaultEnvParser` (the default) reads from `os.environ`, i.e. `os.getenv("DB_URL")`.
+- `FileEnvParser` reads from mounted files — e.g. Docker Swarm `configs`, which expose
+  each value as a file rather than an environment variable. `"ENV_DB_URL"` resolves to
+  the contents of `<envs_dir>/DB_URL` (default directory `/run/envs`).
+
+```python
+from modelmirror.mirror import Mirror
+from modelmirror.parser.default_env_parser import DefaultEnvParser
+from modelmirror.parser.file_env_parser import FileEnvParser
+
+# Default: read ENV_ values from os.environ
+mirror = Mirror('myapp')  # uses DefaultEnvParser()
+
+# Docker Swarm: read ENV_ values from files mounted under /run/envs
+mirror = Mirror('myapp', env_parser=FileEnvParser('/run/envs'))
+
+# Configuration with environment references
+config_data = {
+    "database_url": "ENV_DB_URL",   # ENV_ prefix = environment value
+    "service_name": "my-service"    # no prefix = literal value
+}
+```
+
+**Environment Resolution Rules:**
+- Only strings prefixed with `ENV_` are treated as environment references.
+- A missing variable / file raises `ValueError` (unlike secrets, which fall through to
+  the literal string).
+- A present-but-empty value resolves to an empty string.
+- `DefaultEnvParser` and `FileEnvParser` both implement `EnvParser` and occupy the same
+  `env_parser` slot — pick one per `Mirror` (in a Swarm deployment you read files
+  *instead of* os variables).
+
+### Validation Is Delegated to Your Objects
+
+Secrets and environment values do **not** have any dedicated Pydantic validation logic
+of their own. ModelMirror resolves them to plain strings and substitutes them into the
+configuration as-is; all validation, type coercion, and rules are delegated to the
+Pydantic models / objects that consume them. For example, `"ENV_PORT"` is substituted as
+a string and then validated and coerced by the consuming field's type:
+
+```python
+class ServerConfig(BaseModel):
+    port: int          # "ENV_PORT" -> "8080" (string) -> validated/coerced to int 8080
+    api_key: str       # "API_KEY"  -> secret string, validated as str by this field
+```
+
+This keeps the parsers single-purpose (locate and read a value) and lets your existing
+schemas own correctness.
+
 ### Flexible Instance Retrieval
 
 ```python
