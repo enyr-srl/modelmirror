@@ -140,6 +140,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+!src/modelmirror/env/
 
 # Spyder project settings
 .spyderproject
